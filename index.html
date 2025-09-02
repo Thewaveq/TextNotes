@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Твои Тексты</title>
+    <style>
+        /* Здесь можешь добавить немного стилей, чтобы было красиво */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; background: #f0f2f5; }
+        #root { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        textarea { width: 98%; font-size: 16px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-top: 10px; }
+        button { padding: 10px 15px; border: none; background: #007bff; color: white; border-radius: 4px; cursor: pointer; margin-right: 10px; }
+        button:hover { background: #0056b3; }
+        h2, h3 { color: #333; }
+        .note-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .note-item:hover { background: #f9f9f9; }
+    </style>
+</head>
+<body>
+
+    <!-- Сюда React вставит наше приложение -->
+    <div id="root"></div>
+
+    <!-- Подключаем React и Babel, чтобы писать JSX прямо в HTML -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Клиент Google API для работы с Диском -->
+    <script src="https://apis.google.com/js/api.js"></script>
+
+    <!--
+    ============================================================
+    ТВОЙ КОД ПРИЛОЖЕНИЯ НАЧИНАЕТСЯ ЗДЕСЬ
+    Пиши весь JavaScript и React код внутри этого тега.
+    ============================================================
+    -->
+    <script type="text/babel">
+
+        // --- КОНФИГУРАЦИЯ ---
+        // Эти ключи нужно будет добавить в настройки на Vercel
+        const CLIENT_ID = "ТВОЙ_CLIENT_ID"; // Например, 12345.apps.googleusercontent.com
+        const API_KEY = "ТВОЙ_API_KEY";
+        const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
+        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+        
+        // Главный компонент
+        function App() {
+            // Здесь будет вся логика: авторизация, список заметок и т.д.
+            // Пока просто для проверки
+            const [page, setPage] = React.useState('list'); // 'list', 'note', 'description'
+
+            // ЭКРАН 1: Список заметок
+            if (page === 'list') {
+                return (
+                    <div>
+                        <h2>Мои тексты песен</h2>
+                        <div className="note-item" onClick={() => setPage('note')}>
+                            Название первой песни...
+                        </div>
+                        <div className="note-item" onClick={() => setPage('note')}>
+                            Название второй песни...
+                        </div>
+                        <hr/>
+                        <button>+ Новая песня</button>
+                    </div>
+                );
+            }
+
+            // ЭКРАН 2 и 3: Просмотр заметки
+            if (page === 'note') {
+                return (
+                    <div>
+                        <button onClick={() => setPage('list')}>← Назад к списку</button>
+                        <h3>Название первой песни...</h3>
+                        <textarea placeholder="Пиши текст песни здесь..." style={{height: '300px'}}></textarea>
+                        
+                        <hr/>
+                        <h4>Описание и детали</h4>
+                        <textarea placeholder="Аккорды, мысли, идеи..." style={{height: '100px'}}></textarea>
+                        
+                        <br/><br/>
+                        <button>Сохранить</button>
+                    </div>
+                );
+            }
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+    </script>
+</body>
+</html>
