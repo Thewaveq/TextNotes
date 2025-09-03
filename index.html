@@ -7,7 +7,7 @@
     <style>
         body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
         .container { background-color: #1e1e1e; padding: 2rem; border-radius: 8px; text-align: center; width: 90%; max-width: 400px; }
-        button { background-color: #0070f3; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; margin-top: 1rem; }
+        button { background-color: #0070f3; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; margin-top: 1rem; width: 100%; }
         input { background-color: #333; color: #fff; border: 1px solid #444; padding: 10px; border-radius: 4px; width: calc(100% - 22px); margin-bottom: 1rem; }
         .notes-container { text-align: left; }
     </style>
@@ -21,27 +21,26 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script type="text/babel">
-        // Главный компонент приложения
         function App() {
-            // Пробуем достать ID пользователя из localStorage при загрузке
             const [userId, setUserId] = React.useState(() => localStorage.getItem('userId'));
 
-            const handleLogin = async (email) => {
+            const handleLogin = async (email, password) => {
                 try {
-                    // Отправляем запрос на нашу серверную функцию /api/login
                     const response = await fetch('/api/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: email })
+                        // Отправляем и email, и пароль
+                        body: JSON.stringify({ email: email, password: password })
                     });
                     
+                    const data = await response.json();
+
                     if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.message);
+                        // Показываем конкретную ошибку от сервера, например "Неверный пароль"
+                        throw new Error(data.message || 'Неизвестная ошибка сервера');
                     }
 
-                    const data = await response.json();
-                    localStorage.setItem('userId', data.userId); // Сохраняем ID в браузере
+                    localStorage.setItem('userId', data.userId);
                     setUserId(data.userId);
 
                 } catch (error) {
@@ -50,11 +49,10 @@
             };
             
             const handleLogout = () => {
-                localStorage.removeItem('userId'); // Удаляем ID из браузера
+                localStorage.removeItem('userId');
                 setUserId(null);
             };
 
-            // Если userId есть, показываем страницу заметок, иначе - страницу входа
             if (userId) {
                 return <NotesPage userId={userId} onLogout={handleLogout} />;
             } else {
@@ -62,53 +60,43 @@
             }
         }
 
-        // Компонент страницы входа
         function LoginPage({ onLogin }) {
             const [email, setEmail] = React.useState('');
+            // Добавляем состояние для пароля
+            const [password, setPassword] = React.useState('');
 
             const handleSubmit = (e) => {
                 e.preventDefault();
-                if (email) {
-                    onLogin(email.toLowerCase());
-                } else {
-                    alert('Введите email');
-                }
+                if (email && password) onLogin(email, password);
             };
             
             return (
                 <div className="container">
                     <h2>Вход или Регистрация</h2>
                     <form onSubmit={handleSubmit}>
-                        <input 
-                            type="email" 
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="user@example.com"
-                        />
-                        <button type="submit">Войти</button>
+                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" required />
+                        {/* Добавляем поле для пароля */}
+                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" required />
+                        <button type="submit">Войти / Зарегистрироваться</button>
                     </form>
                 </div>
             );
         }
         
-        // Компонент страницы с заметками
         function NotesPage({ userId, onLogout }) {
-             // Здесь будет логика для загрузки и отображения заметок
             return (
                 <div className="container notes-container">
                     <h2>Ваши заметки</h2>
                     <p>Вы вошли как: {userId}</p>
                     <div className="notes-list-container">
                         <p>Контейнер для списка заметок.</p>
-                        {/* Тут будет рендер заметок */}
                     </div>
                     <button onClick={onLogout}>Выйти</button>
                 </div>
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
