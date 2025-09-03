@@ -50,6 +50,7 @@ h2 {
     font-size: 16px;
     font-family: inherit;
     box-sizing: border-box;
+    transition: border-color 0.2s;
 }
 .form-control:focus {
     outline: none;
@@ -75,26 +76,13 @@ h2 {
     text-align: center;
     display: inline-block;
 }
-.btn-primary { 
-    background-color: var(--accent-color); 
-}
-.btn-primary:hover { 
-    background-color: var(--accent-hover-color); 
-}
-.btn-secondary { 
-    background-color: var(--secondary-surface-color); 
-}
-.btn-secondary:hover { 
-    background-color: #3a3a3a; 
-}
-.btn-danger {
-    background-color: var(--danger-color);
-}
-.btn-danger:hover {
-    background-color: var(--danger-hover-color);
-}
+.btn-primary { background-color: var(--accent-color); }
+.btn-primary:hover { background-color: var(--accent-hover-color); }
+.btn-secondary { background-color: var(--secondary-surface-color); }
+.btn-secondary:hover { background-color: #3a3a3a; }
+.btn-danger { background-color: var(--danger-color); }
+.btn-danger:hover { background-color: var(--danger-hover-color); }
 
-/* НОВЫЙ СТИЛЬ: Кнопки-иконки */
 .btn-icon {
     background: transparent;
     border: none;
@@ -106,13 +94,25 @@ h2 {
     justify-content: center;
     transition: background-color 0.2s;
 }
-.btn-icon:hover {
-    background-color: var(--secondary-surface-color);
+.btn-icon:hover { background-color: var(--secondary-surface-color); }
+.btn-icon svg { width: 24px; height: 24px; stroke: var(--text-color); }
+
+/* НОВЫЙ СТИЛЬ: Кнопка удаления на экране настроек */
+.btn-delete {
+    width: 100%;
+    background-color: transparent;
+    border: 1px solid var(--danger-color);
+    color: var(--danger-color);
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
 }
-.btn-icon svg {
-    width: 24px;
-    height: 24px;
-    stroke: var(--text-color);
+.btn-delete:hover {
+    background-color: var(--danger-color);
+    color: white;
 }
 
 
@@ -144,18 +144,17 @@ h2 {
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    margin-bottom: 1rem; 
+    margin-bottom: 1.5rem; 
     flex-shrink: 0;
 }
 
-/* НОВЫЙ СТИЛЬ: Заголовок заметки в шапке */
 .detail-title {
     font-size: 1.2rem;
     font-weight: 600;
     margin: 0;
     padding: 0 1rem;
-    flex-grow: 1; /* Занимает все доступное место */
-    text-align: center; /* Центрирует текст внутри себя */
+    flex-grow: 1;
+    text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -163,35 +162,16 @@ h2 {
 
 /* --- Аватар пользователя и блок профиля --- */
 .profile-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: var(--accent-color);
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 20px;
-    font-weight: bold;
-    cursor: pointer;
-    user-select: none;
-    transition: transform 0.2s;
+    width: 40px; height: 40px; border-radius: 50%; background-color: var(--accent-color); color: white;
+    display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: bold;
+    cursor: pointer; user-select: none; transition: transform 0.2s;
 }
-.profile-avatar:hover {
-    transform: scale(1.1);
-}
+.profile-avatar:hover { transform: scale(1.1); }
 .profile-info {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    padding: 1rem;
-    background-color: var(--primary-surface-color);
-    border-radius: 8px;
+    display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; padding: 1rem;
+    background-color: var(--primary-surface-color); border-radius: 8px;
 }
-.profile-info .profile-avatar {
-    width: 50px; height: 50px; font-size: 24px; cursor: default;
-}
+.profile-info .profile-avatar { width: 50px; height: 50px; font-size: 24px; cursor: default; }
 .profile-info .profile-avatar:hover { transform: none; }
 .profile-info-text { display: flex; flex-direction: column; }
 .profile-info-label { margin: 0; color: var(--text-secondary-color); font-size: 0.9rem; }
@@ -199,112 +179,62 @@ h2 {
 
 /* --- Плавающая кнопка создания (FAB) --- */
 .fab {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background-color: var(--primary-surface-color);
-    color: var(--accent-color);
-    border: 2px dashed var(--border-color); 
-    font-size: 32px;
-    line-height: 52px;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    z-index: 1000;
+    position: fixed; bottom: 2rem; right: 2rem; width: 56px; height: 56px;
+    border-radius: 50%; background-color: var(--primary-surface-color);
+    color: var(--accent-color); border: 2px dashed var(--border-color); 
+    font-size: 32px; line-height: 52px; text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); cursor: pointer;
+    transition: all 0.2s ease-in-out; z-index: 1000;
 }
-.fab:hover {
-    background-color: var(--secondary-surface-color);
-    transform: scale(1.05) rotate(90deg);
+.fab:hover { background-color: var(--secondary-surface-color); transform: scale(1.05) rotate(90deg); }
+
+/* --- Стили для экранов заметок и настроек --- */
+
+/* Поле ввода текста заметки */
+textarea.note-content-input {
+    flex-grow: 1; background-color: transparent; color: var(--text-color); border: none; padding: 0.5rem 0;
+    font-size: 1.1rem; line-height: 1.6; font-family: inherit; resize: none; width: 100%; box-sizing: border-box;
+}
+textarea.note-content-input:focus { outline: none; }
+
+/* НОВЫЙ СТИЛЬ: Поле ввода заголовка на экране настроек */
+.settings-title-input {
+    background-color: transparent;
+    border: none;
+    border-bottom: 2px solid var(--border-color);
+    font-size: 2rem;
+    font-weight: bold;
+    padding: 0.5rem 0;
+    border-radius: 0;
+    margin-bottom: 1rem;
+    transition: border-color 0.2s;
+}
+.settings-title-input:focus {
+    border-color: var(--accent-color);
 }
 
-/* ИЗМЕНЕНО: Стили поля ввода текста заметки */
-textarea.note-content-input {
-    flex-grow: 1; /* Занимает все доступное место по высоте */
-    background-color: transparent;
-    color: var(--text-color);
-    border: none;
-    padding: 0;
-    font-size: 1.1rem;
-    line-height: 1.6;
-    font-family: inherit;
-    resize: none; /* Отключаем возможность изменения размера */
-    width: 100%;
-    box-sizing: border-box;
-}
-textarea.note-content-input:focus {
-    outline: none; /* Убираем обводку при фокусе */
-}
 
 /* --- Стили для списка заметок и механики удаления --- */
 .notes-list-wrapper {
-    flex-grow: 1;
-    overflow-y: auto;
-    min-height: 0;
-    scrollbar-width: none;
+    flex-grow: 1; overflow-y: auto; min-height: 0; scrollbar-width: none;
 }
-.notes-list-wrapper::-webkit-scrollbar {
-    display: none;
-}
-.notes-list { 
-    list-style: none; 
-    padding: 0; 
-}
-.note-item-wrapper {
-    position: relative;
-    margin-bottom: 0.75rem;
-    border-radius: 8px;
-}
+.notes-list-wrapper::-webkit-scrollbar { display: none; }
+.notes-list { list-style: none; padding: 0; }
+.note-item-wrapper { position: relative; margin-bottom: 0.75rem; border-radius: 8px; }
 .note-item { 
-    position: relative;
-    z-index: 2;
-    background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
-    padding: 1rem 1.5rem; 
-    border-radius: 8px; 
-    width: 100%;
-    box-sizing: border-box;
-    cursor: pointer;
-    transition: width 0.3s ease-in-out, background-color 0.2s;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+    position: relative; z-index: 2; background-color: var(--bg-color); border: 1px solid var(--border-color);
+    padding: 1rem 1.5rem; border-radius: 8px; width: 100%; box-sizing: border-box;
+    cursor: pointer; transition: width 0.3s ease-in-out, background-color 0.2s;
+    -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
     -webkit-tap-highlight-color: transparent;
 }
-.note-item:hover {
-    background-color: var(--primary-surface-color);
-}
-.note-text { 
-    font-size: 1.1rem; 
-}
-.note-item.delete-active {
-    width: calc(100% - 88px); 
-}
+.note-item:hover { background-color: var(--primary-surface-color); }
+.note-text { font-size: 1.1rem; }
+.note-item.delete-active { width: calc(100% - 88px); }
 .delete-confirm-area {
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 80px;
-    background-color: var(--danger-color);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 8px; 
-    cursor: pointer;
-    z-index: 1;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
+    position: absolute; right: 0; top: 0; bottom: 0; width: 80px; background-color: var(--danger-color);
+    display: flex; justify-content: center; align-items: center; border-radius: 8px; 
+    cursor: pointer; z-index: 1; -webkit-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
 }
-.delete-confirm-area svg {
-    width: 24px;
-    height: 24px;
-    stroke: white;
-}
+.delete-confirm-area svg { width: 24px; height: 24px; stroke: white; }
