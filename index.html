@@ -14,10 +14,6 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script type="text/babel">
-        // --- НЕИЗМЕННЫЕ КОМПОНЕНТЫ ---
-        // App, LoginPage, ProfileAvatar, SettingsPage, DeletableNoteItem, NoteListPage
-        // остаются БЕЗ ИЗМЕНЕНИЙ. Копирую их для целостности.
-
         function App() {
             const [userId, setUserId] = React.useState(() => localStorage.getItem('userId'));
             const handleLogin = async (email, password) => {
@@ -130,13 +126,10 @@
 
         // --- ИЗМЕНЕННЫЕ И НОВЫЕ КОМПОНЕНТЫ ---
 
-        /**
-         * Управляющий компонент для отображения списков, заметок и настроек.
-         */
         function NotesPage({ userId, onLogout }) {
             const [notes, setNotes] = React.useState([]);
             const [isLoading, setIsLoading] = React.useState(true);
-            const [view, setView] = React.useState('list'); // 'list', 'detail', 'settings', 'note-settings'
+            const [view, setView] = React.useState('list');
             const [selectedNote, setSelectedNote] = React.useState(null);
 
             React.useEffect(() => {
@@ -156,75 +149,73 @@
                     showDetailView(createdNote);
                 } catch (error) { alert(error.message); }
             };
-
+            
+            // ОБНОВЛЕННАЯ ФУНКЦИЯ УДАЛЕНИЯ, КОТОРАЯ ТЕПЕРЬ УМЕЕТ ВОЗВРАЩАТЬ НА ГЛАВНЫЙ ЭКРАН
             const handleDeleteNote = async (noteId) => {
                 const originalNotes = [...notes];
                 setNotes(notes.filter(n => n.id !== noteId));
+                // Если мы удаляем заметку, находясь на одном из её экранов, надо вернуться в список
+                if (selectedNote && selectedNote.id === noteId) {
+                    showListView();
+                }
                 try {
                     const response = await fetch('/api/notes', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, noteId }) });
                     if (!response.ok) { setNotes(originalNotes); throw new Error('Ошибка удаления на сервере'); }
                 } catch (error) { alert(error.message); }
             };
             
-            // Функция обновления теперь более гибкая: она обновляет данные, но не меняет вид.
             const handleUpdateNote = async (noteId, newText, newDescription) => {
                 const originalNotes = [...notes];
-                // Оптимистичное обновление UI
-                const updatedNoteForUI = { id: noteId, text: newText, description: newDescription };
+                const updatedNoteForUI = { ...originalNotes.find(n => n.id === noteId), text: newText, description: newDescription };
                 const newNotes = notes.map(n => n.id === noteId ? updatedNoteForUI : n);
                 setNotes(newNotes);
-                if(selectedNote && selectedNote.id === noteId) {
-                    setSelectedNote(updatedNoteForUI);
-                }
+                if(selectedNote && selectedNote.id === noteId) { setSelectedNote(updatedNoteForUI); }
 
                 try {
                     const response = await fetch('/api/notes', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, noteId, text: newText, description: newDescription }) });
                     if (!response.ok) throw new Error('Не удалось обновить заметку');
                     const updatedNoteFromServer = await response.json();
-                    // Обновляем состояние уже точными данными с сервера
                     const finalNotes = notes.map(n => n.id === noteId ? updatedNoteFromServer : n);
                     setNotes(finalNotes);
-                    if(selectedNote && selectedNote.id === noteId) {
-                        setSelectedNote(updatedNoteFromServer);
-                    }
-                    return true; // Возвращаем успех
+                    if(selectedNote && selectedNote.id === noteId) { setSelectedNote(updatedNoteFromServer); }
+                    return true;
                 } catch (error) {
                     alert(error.message);
-                    setNotes(originalNotes); // Откатываем изменения в случае ошибки
-                    return false; // Возвращаем неудачу
+                    setNotes(originalNotes);
+                    return false;
                 }
             };
             
-            // Функции для навигации
             const showDetailView = (note) => { setSelectedNote(note); setView('detail'); };
             const showListView = () => { setSelectedNote(null); setView('list'); };
             const showSettingsView = () => { setView('settings'); };
             const showNoteSettingsView = (note) => { setSelectedNote(note); setView('note-settings'); };
 
-            // Роутер для отображения нужного компонента
             if (view === 'detail') return <NoteDetailPage note={selectedNote} onBack={showListView} onSave={handleUpdateNote} onShowSettings={showNoteSettingsView} />;
             if (view === 'settings') return <SettingsPage userId={userId} onLogout={onLogout} onBack={showListView} />;
-            if (view === 'note-settings') return <NoteSettingsPage note={selectedNote} onBack={showDetailView} onSave={handleUpdateNote} />;
+            if (view === 'note-settings') return <NoteSettingsPage note={selectedNote} onBack={showDetailView} onSave={handleUpdateNote} onDelete={handleDeleteNote} />;
 
             return <NoteListPage userId={userId} notes={notes} isLoading={isLoading} onCreate={handleCreateNote} onDelete={handleDeleteNote} onSelect={showDetailView} onShowSettings={showSettingsView} />;
         }
         
         /**
-         * НОВЫЙ КОМПОНЕНТ: Экран настроек для конкретной заметки.
+         * КАРДИНАЛЬНО ОБНОВЛЕННЫЙ КОМПОНЕНТ НАСТРОЕК ЗАМЕТКИ
          */
-        function NoteSettingsPage({ note, onBack, onSave }) {
+        function NoteSettingsPage({ note, onBack, onSave, onDelete }) {
             const [title, setTitle] = React.useState(note.text);
+            const [description, setDescription] = React.useState(note.description || '');
 
             const handleSave = async () => {
-                if (!title.trim()) {
-                    alert('Название заметки не может быть пустым.');
-                    return;
-                }
-                // Сохраняем и, в случае успеха, возвращаемся на предыдущий экран
-                const success = await onSave(note.id, title, note.description);
+                if (!title.trim()) { alert('Название заметки не может быть пустым.'); return; }
+                const success = await onSave(note.id, title, description);
                 if (success) {
-                    // onBack ожидает получить объект заметки для корректного отображения
-                    onBack({ ...note, text: title });
+                    onBack({ ...note, text: title, description: description });
+                }
+            };
+
+            const handleDelete = () => {
+                if (window.confirm(`Вы уверены, что хотите удалить заметку "${note.text}"?`)) {
+                    onDelete(note.id);
                 }
             };
             
@@ -234,43 +225,57 @@
                         <button onClick={() => onBack(note)} className="btn-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
                         </button>
-                         <button onClick={handleSave} className="btn btn-primary">Сохранить</button>
+                        <span className="detail-title">Настройки</span>
+                        <button onClick={handleSave} className="btn-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                        </button>
                     </div>
-                    <h2>Настройки заметки</h2>
-                    <label className="form-label">Название заметки</label>
+                    
                     <input 
                         type="text" 
                         value={title} 
                         onChange={(e) => setTitle(e.target.value)} 
-                        className="form-control"
+                        className="form-control settings-title-input"
+                        placeholder="Название заметки"
                     />
-                    {/* Здесь в будущем можно добавить другие настройки */}
+
+                    <label className="form-label" style={{marginTop: '1rem'}}>Описание (необязательно)</label>
+                    <textarea 
+                        value={description} 
+                        onChange={(e) => setDescription(e.target.value)} 
+                        className="form-control"
+                        placeholder="Краткое описание вашей заметки..."
+                        rows="3"
+                    ></textarea>
+
+                    <div style={{marginTop: 'auto', paddingTop: '2rem'}}>
+                         <button onClick={handleDelete} className="btn btn-delete">Удалить заметку</button>
+                    </div>
                 </div>
             );
         }
 
-        /**
-         * ПЕРЕРАБОТАННЫЙ КОМПОНЕНТ: Экран просмотра/редактирования заметки.
-         */
         function NoteDetailPage({ note, onBack, onSave, onShowSettings }) {
-            // Состояние только для ТЕКСТА заметки. Название берется из пропсов.
             const [content, setContent] = React.useState(note.description || '');
             const initialContent = React.useRef(note.description || '');
 
             const saveChanges = React.useCallback(() => {
                 if (content !== initialContent.current) {
                     onSave(note.id, note.text, content);
-                    initialContent.current = content; // Обновляем "оригинал" после сохранения
+                    initialContent.current = content;
                 }
             }, [content, note, onSave]);
 
-            // Хук для автосохранения при уходе со страницы
             React.useEffect(() => {
-                return () => {
-                    saveChanges();
-                };
+                return () => { saveChanges(); };
             }, [saveChanges]);
             
+            // Обновляем состояние, если сама заметка (например, ее название) изменилась извне
+            React.useEffect(() => {
+                setContent(note.description || '');
+                initialContent.current = note.description || '';
+            }, [note]);
+
             return (
                 <div className="detail-container">
                     <div className="detail-header">
@@ -279,14 +284,14 @@
                         </button>
                         <h3 className="detail-title">{note.text}</h3>
                         <button onClick={() => onShowSettings(note)} className="btn-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-1.007 1.11-1.226l.28-.1c.34-.125.702-.125 1.042 0l.28.1c.548.219 1.02.684 1.11 1.226l.068.418c.296.178.582.396.842.646l.332.286c.447.386.764.962.764 1.585v.503c0 .623-.317 1.199-.764 1.585l-.332.286c-.26.25-.546.468-.842.646l-.068.418c-.09.542-.56 1.007-1.11 1.226l-.28.1c-.34.125-.702.125-1.042 0l-.28-.1c-.548-.219-1.02-.684-1.11-1.226l-.068-.418c-.296-.178-.582-.396-.842-.646l-.332-.286c-.447-.386-.764-.962-.764-1.585v-.503c0-.623.317-1.199.764-1.585l.332-.286c.26-.25.546-.468.842-.646l.068-.418z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-1.007 1.11-1.226l.28-.1c.34-.125.702-.125 1.042 0l.28.1c.548.219 1.02.684 1.11 1.226l.068.418c.296.178.582.396.842.646l.332.286c.447.386.764.962.764 1.585v.503c0 .623-.317 1.199-.764 1.585l-.332.286c-.26.25-.546.468-.842.646l-.068.418c-.09.542-.56 1.007-1.11 1.226l-.28.1c-.34.125-.702.125-1.042 0l-.28-.1c-.548-.219-1.02-.684-1.11-1.226l-.068-.418c-.296-.178-.582-.396-.842-.646l-.332-.286c-.447-.386-.764-.962-.764-1.585v-.503c0-.623.317 1.199.764 1.585l.332.286c.26-.25.546.468.842.646l.068-.418z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                         </button>
                     </div>
                     <textarea 
                         value={content} 
                         onChange={(e) => setContent(e.target.value)} 
-                        onBlur={saveChanges} // Сохранение при потере фокуса
-                        placeholder="Начните писать здесь..." 
+                        onBlur={saveChanges}
+                        placeholder="Текст заметки..." 
                         className="form-control note-content-input"
                     ></textarea>
                 </div>
