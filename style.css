@@ -308,3 +308,25 @@ textarea.note-content-input:focus {
     height: 24px;
     stroke: white;
 }
+
+/* Поле ввода заголовка в настройках */
+.note-settings-title-input {
+    font-size: 2rem;
+    font-weight: bold;
+    padding: 0.5rem 0;
+    border: none;
+    border-bottom: 2px solid var(--border-color);
+    background: transparent;
+    margin-bottom: 1.5rem;
+    color: var(--text-color);
+    width: 100%;
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
+.note-settings-title-input::placeholder {
+    color: var(--text-secondary-color);
+}
+.note-settings-title-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
