@@ -14,10 +14,11 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script type="text/babel">
+        // Компоненты App, LoginPage, NotesPage, ProfileAvatar, SettingsPage, NoteDetailPage
+        // остаются БЕЗ ИЗМЕНЕНИЙ. Копирую их для целостности.
+        
         function App() {
-            // ... (этот компонент без изменений)
             const [userId, setUserId] = React.useState(() => localStorage.getItem('userId'));
-
             const handleLogin = async (email, password) => {
                 try {
                     const response = await fetch('/api/login', {
@@ -29,33 +30,20 @@
                     if (!response.ok) throw new Error(data.message);
                     localStorage.setItem('userId', data.userId);
                     setUserId(data.userId);
-                } catch (error) {
-                    alert('Ошибка: ' + error.message);
-                }
+                } catch (error) { alert('Ошибка: ' + error.message); }
             };
-            
-            const handleLogout = () => {
-                localStorage.removeItem('userId');
-                setUserId(null);
-            };
-
+            const handleLogout = () => { localStorage.removeItem('userId'); setUserId(null); };
             return (
                 <div className="app-wrapper">
-                    {userId ? (
-                        <NotesPage userId={userId} onLogout={handleLogout} />
-                    ) : (
-                        <LoginPage onLogin={handleLogin} />
-                    )}
+                    {userId ? (<NotesPage userId={userId} onLogout={handleLogout} />) : (<LoginPage onLogin={handleLogin} />)}
                 </div>
             );
         }
 
         function LoginPage({ onLogin }) {
-            // ... (этот компонент без изменений)
             const [email, setEmail] = React.useState('');
             const [password, setPassword] = React.useState('');
             const handleSubmit = (e) => { e.preventDefault(); if (email && password) onLogin(email, password); };
-            
             return (
                 <div className="login-container">
                     <h2>Вход или Регистрация</h2>
@@ -68,17 +56,13 @@
             );
         }
         
-        // === КОМПОНЕНТ NOTESPAGE (ДОБАВЛЕНА ЛОГИКА ДЛЯ ЭКРАНА НАСТРОЕК) ===
         function NotesPage({ userId, onLogout }) {
             const [notes, setNotes] = React.useState([]);
             const [isLoading, setIsLoading] = React.useState(true);
-            // ИЗМЕНЕНО: теперь у нас 3 вида: 'list', 'detail', 'settings'
             const [view, setView] = React.useState('list');
             const [selectedNote, setSelectedNote] = React.useState(null);
-
             React.useEffect(() => {
                 const fetchNotes = async () => {
-                    // ... (логика загрузки заметок без изменений)
                     try {
                         const response = await fetch(`/api/notes?userId=${encodeURIComponent(userId)}`);
                         if (!response.ok) throw new Error('Не удалось загрузить заметки');
@@ -88,8 +72,6 @@
                 };
                 fetchNotes();
             }, [userId]);
-            
-            // ... (handleCreateNote, handleDeleteNote, handleUpdateNote без изменений)
             const handleCreateNote = async () => {
                 try {
                     const defaultTitle = 'Новая заметка';
@@ -105,14 +87,18 @@
                 } catch (error) { alert(error.message); }
             };
             const handleDeleteNote = async (noteId) => {
-                setNotes(notes.filter(n => n.id !== noteId));
+                const originalNotes = [...notes];
+                setNotes(notes.filter(n => n.id !== noteId)); // Оптимистичное удаление
                 try {
                     const response = await fetch('/api/notes', {
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ userId, noteId })
                     });
-                    if (!response.ok) throw new Error('Ошибка удаления на сервере');
+                    if (!response.ok) {
+                         setNotes(originalNotes); // Возвращаем, если ошибка
+                         throw new Error('Ошибка удаления на сервере');
+                    }
                 } catch (error) { alert(error.message); }
             };
             const handleUpdateNote = async (noteId, newText, newDescription) => {
@@ -128,115 +114,133 @@
                     setView('list');
                 } catch (error) { alert(error.message); }
             };
-            
-            // ИЗМЕНЕНО: функции навигации
             const showDetailView = (note) => { setSelectedNote(note); setView('detail'); };
             const showListView = () => { setSelectedNote(null); setView('list'); };
             const showSettingsView = () => { setSelectedNote(null); setView('settings'); };
-
-            // ИЗМЕНЕНО: Логика рендеринга в зависимости от вида
-            if (view === 'detail') {
-                return <NoteDetailPage note={selectedNote} onBack={showListView} onSave={handleUpdateNote} />;
-            }
-
-            if (view === 'settings') {
-                return <SettingsPage userId={userId} onLogout={onLogout} onBack={showListView} />;
-            }
-
-            return <NoteListPage 
-                        userId={userId} 
-                        notes={notes}
-                        isLoading={isLoading}
-                        onCreate={handleCreateNote}
-                        onDelete={handleDeleteNote}
-                        onSelect={showDetailView}
-                        onShowSettings={showSettingsView} // Передаем новую функцию
-                    />;
+            if (view === 'detail') return <NoteDetailPage note={selectedNote} onBack={showListView} onSave={handleUpdateNote} />;
+            if (view === 'settings') return <SettingsPage userId={userId} onLogout={onLogout} onBack={showListView} />;
+            return <NoteListPage userId={userId} notes={notes} isLoading={isLoading} onCreate={handleCreateNote} onDelete={handleDeleteNote} onSelect={showDetailView} onShowSettings={showSettingsView} />;
         }
         
-        // === НОВЫЙ КОМПОНЕНТ: АВАТАР ПРОФИЛЯ ===
         function ProfileAvatar({ email, onClick }) {
             const initial = email ? email.charAt(0).toUpperCase() : '?';
-            return (
-                <div className="profile-avatar" onClick={onClick} title={email}>
-                    {initial}
-                </div>
-            );
+            return (<div className="profile-avatar" onClick={onClick} title={email}>{initial}</div>);
         }
 
-        // === НОВЫЙ КОМПОНЕНТ: ЭКРАН НАСТРОЕК ===
         function SettingsPage({ userId, onLogout, onBack }) {
             return (
                 <div className="settings-container">
-                    <div className="settings-header">
-                        <button onClick={onBack} className="btn btn-secondary">Назад</button>
-                    </div>
+                    <div className="settings-header"><button onClick={onBack} className="btn btn-secondary">Назад</button></div>
                     <h2>Настройки</h2>
-                    <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: 'var(--primary-surface-color)', borderRadius: '8px'}}>
-                        <p style={{ margin: 0, color: 'var(--text-secondary-color)' }}>Вы вошли как:</p>
-                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem' }}>{userId}</p>
-                    </div>
-                    {/* Здесь можно будет добавить другие настройки */}
+                    <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: 'var(--primary-surface-color)', borderRadius: '8px'}}><p style={{ margin: 0, color: 'var(--text-secondary-color)' }}>Вы вошли как:</p><p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem' }}>{userId}</p></div>
                     <button onClick={onLogout} className="btn btn-danger" style={{ width: '100%' }}>Выйти</button>
                 </div>
             );
         }
 
-        // === КОМПОНЕНТ NOTELISTPAGE (ИНТЕРФЕЙС ШАПКИ ИЗМЕНЕН) ===
-        function NoteListPage({ userId, notes, isLoading, onCreate, onDelete, onSelect, onShowSettings }) {
+        function NoteDetailPage({ note, onBack, onSave }) {
+            const [title, setTitle] = React.useState(note.text);
+            const [content, setContent] = React.useState(note.description || '');
+            const handleSave = () => { if (!title.trim()) { alert('Название заметки не может быть пустым.'); return; } onSave(note.id, title, content); };
             return (
-                <div className="notes-container">
-                    {/* ИЗМЕНЕНО: Полностью новая шапка */}
-                    <div className="header">
-                        <ProfileAvatar email={userId} onClick={onShowSettings} />
-                    </div>
-                    
-                    {/* Заголовок "Ваши Заметки" удален для минимализма */}
-
-                    <button onClick={onCreate} className="btn btn-create-note">
-                        + Создать заметку
-                    </button>
-                    
-                    {isLoading && <p>Загрузка...</p>}
-                    {!isLoading && notes.length === 0 && <p>Заметок пока нет. Нажмите "+", чтобы создать первую!</p>}
-                    
-                    <ul className="notes-list">
-                        {notes.map(note => (
-                            <li key={note.id} className="note-item">
-                                <span className="note-text" onClick={() => onSelect(note)}>
-                                    {note.text}
-                                </span>
-                                <button onClick={(e) => { e.stopPropagation(); onDelete(note.id); }} className="btn btn-delete">Удалить</button>
-                            </li>
-                        ))}
-                    </ul>
+                <div className="detail-container">
+                    <div className="detail-header"><button onClick={onBack} className="btn btn-secondary">Назад</button><button onClick={handleSave} className="btn btn-primary">Сохранить</button></div>
+                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название заметки" className="form-control note-title-input" />
+                    <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Начните писать здесь..." className="form-control"></textarea>
                 </div>
             );
         }
 
-        function NoteDetailPage({ note, onBack, onSave }) {
-            // ... (этот компонент без изменений)
-            const [title, setTitle] = React.useState(note.text);
-            const [content, setContent] = React.useState(note.description || '');
+        // === НОВЫЙ КОМПОНЕНТ ДЛЯ ОДНОЙ ЗАМЕТКИ С ЛОГИКОЙ УДАЛЕНИЯ ===
+        function DeletableNoteItem({ note, isDeleting, onSetDeleting, onSelect, onDelete }) {
+            const timerRef = React.useRef(null); // Ref для хранения ID таймера
 
-            const handleSave = () => {
-                if (!title.trim()) {
-                    alert('Название заметки не может быть пустым.');
-                    return;
+            // Функция-обертка, чтобы избежать клика при отпускании долгого нажатия
+            const handleClick = () => {
+                if (isDeleting) {
+                    onSetDeleting(null); // Если в режиме удаления, клик его отключает
+                } else {
+                    onSelect(note); // Иначе - обычный переход к заметке
                 }
-                onSave(note.id, title, content);
+            };
+            
+            // Симуляция долгого нажатия
+            const handleMouseDown = (e) => {
+                // Запускаем таймер на 500 мс. Если он сработает, включится режим удаления.
+                timerRef.current = setTimeout(() => {
+                    onSetDeleting(note.id);
+                }, 500);
+            };
+
+            const handleMouseUp = () => {
+                // Если мы отпустили кнопку до того, как таймер сработал, отменяем его.
+                clearTimeout(timerRef.current);
+            };
+            
+            // Долгое нажатие на корзине
+            const handleDeleteMouseDown = () => {
+                timerRef.current = setTimeout(() => {
+                    onDelete(note.id);
+                }, 700); // Делаем задержку чуть больше для надежности
             };
 
             return (
-                <div className="detail-container">
-                    <div className="detail-header">
-                        <button onClick={onBack} className="btn btn-secondary">Назад</button>
-                        <button onClick={handleSave} className="btn btn-primary">Сохранить</button>
+                <li className="note-item-wrapper">
+                    <div
+                        className={`note-item ${isDeleting ? 'delete-active' : ''}`}
+                        onClick={handleClick}
+                        onMouseDown={handleMouseDown}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp} // Также отменяем таймер, если курсор ушел
+                    >
+                        <span className="note-text">{note.text}</span>
                     </div>
-                    
-                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название заметки" className="form-control note-title-input" />
-                    <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Начните писать здесь..." className="form-control"></textarea>
-                </div>
+                    <div 
+                        className="delete-confirm-area"
+                        onMouseDown={handleDeleteMouseDown}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.134H8.09a2.09 2.09 0 00-2.09 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                    </div>
+                </li>
+            );
+        }
+        
+        // === КОМПОНЕНТ NOTELISTPAGE (ИНТЕРФЕЙС ЗНАЧИТЕЛЬНО ИЗМЕНЕН) ===
+        function NoteListPage({ userId, notes, isLoading, onCreate, onDelete, onSelect, onShowSettings }) {
+            const [deletingNoteId, setDeletingNoteId] = React.useState(null);
+
+            return (
+                // Используем React.Fragment, чтобы вернуть несколько элементов на одном уровне
+                <> 
+                    <div className="notes-container">
+                        <div className="header">
+                            <ProfileAvatar email={userId} onClick={onShowSettings} />
+                        </div>
+                        
+                        {isLoading && <p>Загрузка...</p>}
+                        {!isLoading && notes.length === 0 && <p>Заметок пока нет. Нажмите "+", чтобы создать первую!</p>}
+                        
+                        <ul className="notes-list">
+                            {notes.map(note => (
+                                <DeletableNoteItem 
+                                    key={note.id}
+                                    note={note}
+                                    isDeleting={deletingNoteId === note.id}
+                                    onSetDeleting={setDeletingNoteId}
+                                    onSelect={onSelect}
+                                    onDelete={onDelete}
+                                />
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Плавающая кнопка находится вне основного контейнера */}
+                    <button onClick={onCreate} className="fab">+</button>
+                </>
             );
         }
 
