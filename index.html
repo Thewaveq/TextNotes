@@ -119,24 +119,39 @@
 
         function DeletableNoteItem({ note, isDeleting, onSetDeleting, onSelect, onDelete }) {
             const timerRef = React.useRef(null);
-            const longPressFiredRef = React.useRef(false); 
-            const clearTimers = () => { clearTimeout(timerRef.current); };
+            const longPressHandled = React.useRef(false);
+
             const handlePressStart = () => {
-                longPressFiredRef.current = false;
+                longPressHandled.current = false;
                 timerRef.current = setTimeout(() => {
                     onSetDeleting(note.id);
-                    longPressFiredRef.current = true;
+                    longPressHandled.current = true;
                 }, 500);
             };
-            const handlePressEnd = () => { clearTimers(); };
+
+            const handlePressEnd = () => {
+                clearTimeout(timerRef.current);
+            };
+
             const handleClick = () => {
-                if (longPressFiredRef.current) return;
-                if (isDeleting) { onSetDeleting(null); } 
-                else { onSelect(note); }
+                if (longPressHandled.current) {
+                    return;
+                }
+
+                if (isDeleting) {
+                    onSetDeleting(null);
+                } 
+                else {
+                    onSelect(note);
+                }
             };
+            
             const handleDeletePressStart = () => {
-                timerRef.current = setTimeout(() => { onDelete(note.id); }, 700);
+                timerRef.current = setTimeout(() => {
+                    onDelete(note.id);
+                }, 700);
             };
+
             return (
                 <li className="note-item-wrapper">
                     <div
