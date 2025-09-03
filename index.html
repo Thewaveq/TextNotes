@@ -14,9 +14,10 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script type="text/babel">
-        // Компоненты App, LoginPage, NotesPage, ProfileAvatar, NoteDetailPage
+        // --- НЕИЗМЕННЫЕ КОМПОНЕНТЫ ---
+        // App, LoginPage, ProfileAvatar, SettingsPage, DeletableNoteItem, NoteListPage
         // остаются БЕЗ ИЗМЕНЕНИЙ. Копирую их для целостности.
-        
+
         function App() {
             const [userId, setUserId] = React.useState(() => localStorage.getItem('userId'));
             const handleLogin = async (email, password) => {
@@ -39,58 +40,11 @@
             return (<div className="login-container"><h2>Вход или Регистрация</h2><form onSubmit={handleSubmit}><input className="form-control" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" required /><input className="form-control" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" required /><button type="submit" className="btn btn-primary" style={{width: '100%'}}>Войти</button></form></div>);
         }
         
-        function NotesPage({ userId, onLogout }) {
-            const [notes, setNotes] = React.useState([]);
-            const [isLoading, setIsLoading] = React.useState(true);
-            const [view, setView] = React.useState('list');
-            const [selectedNote, setSelectedNote] = React.useState(null);
-            React.useEffect(() => {
-                const fetchNotes = async () => {
-                    try { const response = await fetch(`/api/notes?userId=${encodeURIComponent(userId)}`); if (!response.ok) throw new Error('Не удалось загрузить заметки'); setNotes(await response.json()); } catch (error) { alert(error.message); } finally { setIsLoading(false); }
-                };
-                fetchNotes();
-            }, [userId]);
-            const handleCreateNote = async () => {
-                try {
-                    const defaultTitle = 'Новая заметка';
-                    const response = await fetch('/api/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, text: defaultTitle }) });
-                    if (!response.ok) throw new Error('Не удалось создать заметку');
-                    const createdNote = await response.json();
-                    setNotes(prev => [...prev, createdNote]);
-                    showDetailView(createdNote);
-                } catch (error) { alert(error.message); }
-            };
-            const handleDeleteNote = async (noteId) => {
-                const originalNotes = [...notes];
-                setNotes(notes.filter(n => n.id !== noteId));
-                try {
-                    const response = await fetch('/api/notes', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, noteId }) });
-                    if (!response.ok) { setNotes(originalNotes); throw new Error('Ошибка удаления на сервере'); }
-                } catch (error) { alert(error.message); }
-            };
-            const handleUpdateNote = async (noteId, newText, newDescription) => {
-                try {
-                    const response = await fetch('/api/notes', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, noteId, text: newText, description: newDescription }) });
-                    if (!response.ok) throw new Error('Не удалось обновить заметку');
-                    const updatedNote = await response.json();
-                    setNotes(notes.map(n => n.id === noteId ? updatedNote : n));
-                    setView('list');
-                } catch (error) { alert(error.message); }
-            };
-            const showDetailView = (note) => { setSelectedNote(note); setView('detail'); };
-            const showListView = () => { setSelectedNote(null); setView('list'); };
-            const showSettingsView = () => { setSelectedNote(null); setView('settings'); };
-            if (view === 'detail') return <NoteDetailPage note={selectedNote} onBack={showListView} onSave={handleUpdateNote} />;
-            if (view === 'settings') return <SettingsPage userId={userId} onLogout={onLogout} onBack={showListView} />;
-            return <NoteListPage userId={userId} notes={notes} isLoading={isLoading} onCreate={handleCreateNote} onDelete={handleDeleteNote} onSelect={showDetailView} onShowSettings={showSettingsView} />;
-        }
-        
         function ProfileAvatar({ email, onClick }) {
             const initial = email ? email.charAt(0).toUpperCase() : '?';
             return (<div className="profile-avatar" onClick={onClick} title={email}>{initial}</div>);
         }
 
-        // === ИЗМЕНЕННЫЙ КОМПОНЕНТ SETTINGSPAGE ===
         function SettingsPage({ userId, onLogout, onBack }) {
             return (
                 <div className="settings-container">
@@ -110,148 +64,232 @@
             );
         }
 
-        function NoteDetailPage({ note, onBack, onSave }) {
-            const [title, setTitle] = React.useState(note.text);
-            const [content, setContent] = React.useState(note.description || '');
-            const handleSave = () => { if (!title.trim()) { alert('Название заметки не может быть пустым.'); return; } onSave(note.id, title, content); };
-            return (<div className="detail-container"><div className="detail-header"><button onClick={onBack} className="btn btn-secondary">Назад</button><button onClick={handleSave} className="btn btn-primary">Сохранить</button></div><input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название заметки" className="form-control note-title-input" /><textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Начните писать здесь..." className="form-control"></textarea></div>);
-        }
-
         function DeletableNoteItem({ note, isDeleting, onSetDeleting, onSelect, onDelete }) {
             const timerRef = React.useRef(null);
             const longPressHandled = React.useRef(false);
             const touchStartPos = React.useRef({ x: 0, y: 0 });
-        
             const handlePressStart = (e) => {
                 longPressHandled.current = false;
-                
                 const startX = e.touches ? e.touches[0].clientX : e.clientX;
                 const startY = e.touches ? e.touches[0].clientY : e.clientY;
                 touchStartPos.current = { x: startX, y: startY };
-        
-                timerRef.current = setTimeout(() => {
-                    onSetDeleting(note.id);
-                    longPressHandled.current = true;
-                }, 500);
+                timerRef.current = setTimeout(() => { onSetDeleting(note.id); longPressHandled.current = true; }, 500);
             };
-        
-            const handlePressEnd = () => {
-                clearTimeout(timerRef.current);
-            };
-            
+            const handlePressEnd = () => { clearTimeout(timerRef.current); };
             const handleMove = (e) => {
                 if (!timerRef.current) return;
-        
                 const currentX = e.touches ? e.touches[0].clientX : e.clientX;
                 const currentY = e.touches ? e.touches[0].clientY : e.clientY;
-        
                 const deltaX = Math.abs(currentX - touchStartPos.current.x);
                 const deltaY = Math.abs(currentY - touchStartPos.current.y);
-        
                 const threshold = 10;
-        
-                if (deltaX > threshold || deltaY > threshold) {
-                    clearTimeout(timerRef.current);
-                    timerRef.current = null;
-                }
+                if (deltaX > threshold || deltaY > threshold) { clearTimeout(timerRef.current); timerRef.current = null; }
             };
-        
             const handleClick = () => {
-                if (longPressHandled.current) {
-                    return;
-                }
-                if (isDeleting) {
-                    onSetDeleting(null);
-                } else {
-                    onSelect(note);
-                }
+                if (longPressHandled.current) return;
+                if (isDeleting) { onSetDeleting(null); } else { onSelect(note); }
             };
-            
-            const handleDeletePressStart = () => {
-                timerRef.current = setTimeout(() => {
-                    onDelete(note.id);
-                }, 700);
-            };
-        
+            const handleDeletePressStart = () => { timerRef.current = setTimeout(() => { onDelete(note.id); }, 700); };
             return (
                 <li className="note-item-wrapper">
-                    <div
-                        className={`note-item ${isDeleting ? 'delete-active' : ''}`}
-                        onClick={handleClick}
-                        onMouseDown={handlePressStart}
-                        onMouseUp={handlePressEnd}
-                        onMouseLeave={handlePressEnd}
-                        onMouseMove={handleMove}
-                        onTouchStart={handlePressStart}
-                        onTouchEnd={handlePressEnd}
-                        onTouchCancel={handlePressEnd}
-                        onTouchMove={handleMove}
-                    >
+                    <div className={`note-item ${isDeleting ? 'delete-active' : ''}`} onClick={handleClick} onMouseDown={handlePressStart} onMouseUp={handlePressEnd} onMouseLeave={handlePressEnd} onMouseMove={handleMove} onTouchStart={handlePressStart} onTouchEnd={handlePressEnd} onTouchCancel={handlePressEnd} onTouchMove={handleMove}>
                         <span className="note-text">{note.text}</span>
                     </div>
-                    <div 
-                        className="delete-confirm-area"
-                        onMouseDown={handleDeletePressStart}
-                        onMouseUp={handlePressEnd}
-                        onMouseLeave={handlePressEnd}
-                        onTouchStart={handleDeletePressStart}
-                        onTouchEnd={handlePressEnd}
-                        onTouchCancel={handlePressEnd}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.134H8.09a2.09 2.09 0 00-2.09 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                        </svg>
+                    <div className="delete-confirm-area" onMouseDown={handleDeletePressStart} onMouseUp={handlePressEnd} onMouseLeave={handlePressEnd} onTouchStart={handleDeletePressStart} onTouchEnd={handlePressEnd} onTouchCancel={handlePressEnd}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.134H8.09a2.09 2.09 0 00-2.09 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                     </div>
                 </li>
             );
         }
-        
+
         function NoteListPage({ userId, notes, isLoading, onCreate, onDelete, onSelect, onShowSettings }) {
             const [deletingNoteId, setDeletingNoteId] = React.useState(null);
             React.useEffect(() => {
                 if (!deletingNoteId) return;
-                const handleClickOutside = (event) => {
-                    if (!event.target.closest('.note-item-wrapper')) {
-                        setDeletingNoteId(null);
-                    }
-                };
+                const handleClickOutside = (event) => { if (!event.target.closest('.note-item-wrapper')) { setDeletingNoteId(null); } };
                 document.addEventListener('mousedown', handleClickOutside);
                 document.addEventListener('touchstart', handleClickOutside);
-                return () => {
-                    document.removeEventListener('mousedown', handleClickOutside);
-                    document.removeEventListener('touchstart', handleClickOutside);
-                };
+                return () => { document.removeEventListener('mousedown', handleClickOutside); document.removeEventListener('touchstart', handleClickOutside); };
             }, [deletingNoteId]);
             return (
                 <>
                     <div className="notes-container">
-                        <div className="header">
-                            <ProfileAvatar email={userId} onClick={onShowSettings} />
-                        </div>
-
+                        <div className="header"><ProfileAvatar email={userId} onClick={onShowSettings} /></div>
                         <div className="notes-list-wrapper">
-                            {isLoading ? (
-                                <p>Загрузка...</p>
-                            ) : notes.length === 0 ? (
-                                <p>Заметок пока нет. Нажмите "+", чтобы создать первую!</p>
-                            ) : (
+                            {isLoading ? (<p>Загрузка...</p>) : notes.length === 0 ? (<p>Заметок пока нет. Нажмите "+", чтобы создать первую!</p>) : (
                                 <ul className="notes-list">
-                                    {notes.map(note => (
-                                        <DeletableNoteItem
-                                            key={note.id}
-                                            note={note}
-                                            isDeleting={deletingNoteId === note.id}
-                                            onSetDeleting={setDeletingNoteId}
-                                            onSelect={onSelect}
-                                            onDelete={onDelete}
-                                        />
-                                    ))}
+                                    {notes.map(note => ( <DeletableNoteItem key={note.id} note={note} isDeleting={deletingNoteId === note.id} onSetDeleting={setDeletingNoteId} onSelect={onSelect} onDelete={onDelete} /> ))}
                                 </ul>
                             )}
                         </div>
                     </div>
                     <button onClick={onCreate} className="fab">+</button>
                 </>
+            );
+        }
+
+        // --- ИЗМЕНЕННЫЕ И НОВЫЕ КОМПОНЕНТЫ ---
+
+        /**
+         * Управляющий компонент для отображения списков, заметок и настроек.
+         */
+        function NotesPage({ userId, onLogout }) {
+            const [notes, setNotes] = React.useState([]);
+            const [isLoading, setIsLoading] = React.useState(true);
+            const [view, setView] = React.useState('list'); // 'list', 'detail', 'settings', 'note-settings'
+            const [selectedNote, setSelectedNote] = React.useState(null);
+
+            React.useEffect(() => {
+                const fetchNotes = async () => {
+                    try { const response = await fetch(`/api/notes?userId=${encodeURIComponent(userId)}`); if (!response.ok) throw new Error('Не удалось загрузить заметки'); setNotes(await response.json()); } catch (error) { alert(error.message); } finally { setIsLoading(false); }
+                };
+                fetchNotes();
+            }, [userId]);
+
+            const handleCreateNote = async () => {
+                try {
+                    const defaultTitle = 'Новая заметка';
+                    const response = await fetch('/api/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, text: defaultTitle }) });
+                    if (!response.ok) throw new Error('Не удалось создать заметку');
+                    const createdNote = await response.json();
+                    setNotes(prev => [...prev, createdNote]);
+                    showDetailView(createdNote);
+                } catch (error) { alert(error.message); }
+            };
+
+            const handleDeleteNote = async (noteId) => {
+                const originalNotes = [...notes];
+                setNotes(notes.filter(n => n.id !== noteId));
+                try {
+                    const response = await fetch('/api/notes', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, noteId }) });
+                    if (!response.ok) { setNotes(originalNotes); throw new Error('Ошибка удаления на сервере'); }
+                } catch (error) { alert(error.message); }
+            };
+            
+            // Функция обновления теперь более гибкая: она обновляет данные, но не меняет вид.
+            const handleUpdateNote = async (noteId, newText, newDescription) => {
+                const originalNotes = [...notes];
+                // Оптимистичное обновление UI
+                const updatedNoteForUI = { id: noteId, text: newText, description: newDescription };
+                const newNotes = notes.map(n => n.id === noteId ? updatedNoteForUI : n);
+                setNotes(newNotes);
+                if(selectedNote && selectedNote.id === noteId) {
+                    setSelectedNote(updatedNoteForUI);
+                }
+
+                try {
+                    const response = await fetch('/api/notes', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, noteId, text: newText, description: newDescription }) });
+                    if (!response.ok) throw new Error('Не удалось обновить заметку');
+                    const updatedNoteFromServer = await response.json();
+                    // Обновляем состояние уже точными данными с сервера
+                    const finalNotes = notes.map(n => n.id === noteId ? updatedNoteFromServer : n);
+                    setNotes(finalNotes);
+                    if(selectedNote && selectedNote.id === noteId) {
+                        setSelectedNote(updatedNoteFromServer);
+                    }
+                    return true; // Возвращаем успех
+                } catch (error) {
+                    alert(error.message);
+                    setNotes(originalNotes); // Откатываем изменения в случае ошибки
+                    return false; // Возвращаем неудачу
+                }
+            };
+            
+            // Функции для навигации
+            const showDetailView = (note) => { setSelectedNote(note); setView('detail'); };
+            const showListView = () => { setSelectedNote(null); setView('list'); };
+            const showSettingsView = () => { setView('settings'); };
+            const showNoteSettingsView = (note) => { setSelectedNote(note); setView('note-settings'); };
+
+            // Роутер для отображения нужного компонента
+            if (view === 'detail') return <NoteDetailPage note={selectedNote} onBack={showListView} onSave={handleUpdateNote} onShowSettings={showNoteSettingsView} />;
+            if (view === 'settings') return <SettingsPage userId={userId} onLogout={onLogout} onBack={showListView} />;
+            if (view === 'note-settings') return <NoteSettingsPage note={selectedNote} onBack={showDetailView} onSave={handleUpdateNote} />;
+
+            return <NoteListPage userId={userId} notes={notes} isLoading={isLoading} onCreate={handleCreateNote} onDelete={handleDeleteNote} onSelect={showDetailView} onShowSettings={showSettingsView} />;
+        }
+        
+        /**
+         * НОВЫЙ КОМПОНЕНТ: Экран настроек для конкретной заметки.
+         */
+        function NoteSettingsPage({ note, onBack, onSave }) {
+            const [title, setTitle] = React.useState(note.text);
+
+            const handleSave = async () => {
+                if (!title.trim()) {
+                    alert('Название заметки не может быть пустым.');
+                    return;
+                }
+                // Сохраняем и, в случае успеха, возвращаемся на предыдущий экран
+                const success = await onSave(note.id, title, note.description);
+                if (success) {
+                    // onBack ожидает получить объект заметки для корректного отображения
+                    onBack({ ...note, text: title });
+                }
+            };
+            
+            return (
+                <div className="settings-container">
+                    <div className="detail-header">
+                        <button onClick={() => onBack(note)} className="btn-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                        </button>
+                         <button onClick={handleSave} className="btn btn-primary">Сохранить</button>
+                    </div>
+                    <h2>Настройки заметки</h2>
+                    <label className="form-label">Название заметки</label>
+                    <input 
+                        type="text" 
+                        value={title} 
+                        onChange={(e) => setTitle(e.target.value)} 
+                        className="form-control"
+                    />
+                    {/* Здесь в будущем можно добавить другие настройки */}
+                </div>
+            );
+        }
+
+        /**
+         * ПЕРЕРАБОТАННЫЙ КОМПОНЕНТ: Экран просмотра/редактирования заметки.
+         */
+        function NoteDetailPage({ note, onBack, onSave, onShowSettings }) {
+            // Состояние только для ТЕКСТА заметки. Название берется из пропсов.
+            const [content, setContent] = React.useState(note.description || '');
+            const initialContent = React.useRef(note.description || '');
+
+            const saveChanges = React.useCallback(() => {
+                if (content !== initialContent.current) {
+                    onSave(note.id, note.text, content);
+                    initialContent.current = content; // Обновляем "оригинал" после сохранения
+                }
+            }, [content, note, onSave]);
+
+            // Хук для автосохранения при уходе со страницы
+            React.useEffect(() => {
+                return () => {
+                    saveChanges();
+                };
+            }, [saveChanges]);
+            
+            return (
+                <div className="detail-container">
+                    <div className="detail-header">
+                        <button onClick={onBack} className="btn-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                        </button>
+                        <h3 className="detail-title">{note.text}</h3>
+                        <button onClick={() => onShowSettings(note)} className="btn-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-1.007 1.11-1.226l.28-.1c.34-.125.702-.125 1.042 0l.28.1c.548.219 1.02.684 1.11 1.226l.068.418c.296.178.582.396.842.646l.332.286c.447.386.764.962.764 1.585v.503c0 .623-.317 1.199-.764 1.585l-.332.286c-.26.25-.546.468-.842.646l-.068.418c-.09.542-.56 1.007-1.11 1.226l-.28.1c-.34.125-.702.125-1.042 0l-.28-.1c-.548-.219-1.02-.684-1.11-1.226l-.068-.418c-.296-.178-.582-.396-.842-.646l-.332-.286c-.447-.386-.764-.962-.764-1.585v-.503c0-.623.317-1.199.764-1.585l.332-.286c.26-.25.546-.468.842-.646l.068-.418z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </button>
+                    </div>
+                    <textarea 
+                        value={content} 
+                        onChange={(e) => setContent(e.target.value)} 
+                        onBlur={saveChanges} // Сохранение при потере фокуса
+                        placeholder="Начните писать здесь..." 
+                        className="form-control note-content-input"
+                    ></textarea>
+                </div>
             );
         }
 
