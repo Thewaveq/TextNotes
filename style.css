@@ -146,35 +146,39 @@ input.note-title-input:focus {
     transform: scale(1.1);
 }
 
-/* --- Плавающая кнопка создания (FAB) --- */
+/* --- ИЗМЕНЕНО: Плавающая кнопка создания (FAB) --- */
 .fab {
     position: fixed;
     bottom: 2.5rem;
     right: 2.5rem;
-    width: 60px;
-    height: 60px;
+    width: 56px; /* Уменьшили размер */
+    height: 56px; /* Уменьшили размер */
     border-radius: 50%;
-    background-color: var(--accent-color);
-    color: white;
-    font-size: 36px;
-    line-height: 58px;
+    background-color: var(--secondary-surface-color); /* Сделали темной */
+    color: var(--text-color); /* Поменяли цвет текста на светлый */
+    font-size: 32px; /* Скорректировали размер шрифта */
+    line-height: 56px; /* Скорректировали для центрирования */
     text-align: center;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    border: none;
+    border: 1px solid var(--border-color); /* Добавили обводку */
     cursor: pointer;
     transition: background-color 0.2s, transform 0.2s;
     z-index: 1000;
 }
 .fab:hover {
-    background-color: var(--accent-hover-color);
+    background-color: #3a3a3a; /* Затемнили цвет при наведении */
     transform: scale(1.05);
 }
 
-/* --- Стили для списка заметок и механики удаления --- */
+/* --- ИЗМЕНЕНО: Стили для списка заметок и механики удаления --- */
 .notes-list { 
     list-style: none; 
     padding: 0; 
     margin-top: 1.5rem;
+    /* Добавили скролл */
+    max-height: calc(100vh - 150px); /* Ограничиваем высоту, 150px - примерное значение для шапки и отступов */
+    overflow-y: auto; /* Включаем вертикальный скролл при необходимости */
+    padding-right: 8px; /* Добавили небольшой отступ справа, чтобы скроллбар не прилипал к тексту */
 }
 
 /* Обертка для позиционирования */
