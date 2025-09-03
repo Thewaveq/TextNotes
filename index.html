@@ -168,6 +168,7 @@
             
             const handleUpdateNote = async (noteId, newText, newDescription) => {
                 const originalNotes = [...notes];
+                // Оптимистичное обновление UI
                 const updatedNoteForUI = { ...originalNotes.find(n => n.id === noteId), text: newText, description: newDescription };
                 const newNotes = notes.map(n => n.id === noteId ? updatedNoteForUI : n);
                 setNotes(newNotes);
@@ -179,6 +180,7 @@
                     const response = await fetch('/api/notes', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, noteId, text: newText, description: newDescription }) });
                     if (!response.ok) throw new Error('Не удалось обновить заметку');
                     const updatedNoteFromServer = await response.json();
+                    // Обновляем состояние уже точными данными с сервера
                     const finalNotes = notes.map(n => n.id === noteId ? updatedNoteFromServer : n);
                     setNotes(finalNotes);
                     if(selectedNote && selectedNote.id === noteId) {
@@ -197,7 +199,6 @@
             const showSettingsView = () => { setView('settings'); };
             const showNoteSettingsView = (note) => { setSelectedNote(note); setView('note-settings'); };
 
-            // НОВАЯ ФУНКЦИЯ для удаления из настроек
             const handleDeleteAndGoBack = (noteId) => {
                 handleDeleteNote(noteId);
                 showListView();
@@ -207,7 +208,7 @@
             if (view === 'settings') return <SettingsPage userId={userId} onLogout={onLogout} onBack={showListView} />;
             if (view === 'note-settings') return <NoteSettingsPage note={selectedNote} onBack={showDetailView} onSave={handleUpdateNote} onDelete={handleDeleteAndGoBack} />;
 
-            return <NoteListPage userId={userId} notes={notes} isLoading={isLoading} onCreate={handleCreateNote} onDelete={handleDeleteNote} onSelect={showDetailView} onShowSettings={showShowSettings} />;
+            return <NoteListPage userId={userId} notes={notes} isLoading={isLoading} onCreate={handleCreateNote} onDelete={handleDeleteNote} onSelect={showDetailView} onShowSettings={showSettingsView} />;
         }
         
         /**
