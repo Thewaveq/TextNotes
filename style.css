@@ -217,9 +217,7 @@ input.note-title-input:focus {
 .notes-list { 
     list-style: none; 
     padding: 0; 
-    flex-grow: 1;
     overflow-y: auto;
-    min-height: 0;
     
     /* --- Скрываем скроллбар --- */
     scrollbar-width: none; /* Для Firefox */
