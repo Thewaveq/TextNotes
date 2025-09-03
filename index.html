@@ -5,11 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Заметки на Vercel</title>
     <style>
-        body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .container { background-color: #1e1e1e; padding: 2rem; border-radius: 8px; text-align: center; width: 90%; max-width: 400px; }
-        button { background-color: #0070f3; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; margin-top: 1rem; width: 100%; }
-        input { background-color: #333; color: #fff; border: 1px solid #444; padding: 10px; border-radius: 4px; width: calc(100% - 22px); margin-bottom: 1rem; }
+        body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 1rem 0; }
+        .container { background-color: #1e1e1e; padding: 2rem; border-radius: 8px; text-align: center; width: 90%; max-width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        button { background-color: #0070f3; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; margin-top: 1rem; width: 100%; transition: background-color 0.2s; }
+        button:hover { background-color: #005bb5; }
+        button.delete-btn { background-color: #e53e3e; font-size: 14px; padding: 6px 12px; width: auto; margin: 0; }
+        button.delete-btn:hover { background-color: #c53030; }
+        input[type="email"], input[type="password"], input[type="text"] { background-color: #333; color: #fff; border: 1px solid #444; padding: 12px; border-radius: 4px; width: calc(100% - 24px); margin-bottom: 1rem; font-size: 16px; }
         .notes-container { text-align: left; }
+        .notes-list { list-style: none; padding: 0; margin-top: 1.5rem; }
+        .note-item { display: flex; justify-content: space-between; align-items: center; background-color: #2a2a2a; padding: 1rem; border-radius: 6px; margin-bottom: 0.75rem; }
+        .note-item span { cursor: pointer; flex-grow: 1; }
+        .form-create-note { display: flex; gap: 10px; margin-top: 1.5rem; }
+        .form-create-note input { flex-grow: 1; margin: 0; }
+        .form-create-note button { width: auto; margin: 0; }
+        .loading-text { color: #888; }
     </style>
 </head>
 <body>
@@ -29,16 +39,11 @@
                     const response = await fetch('/api/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        // Отправляем и email, и пароль
                         body: JSON.stringify({ email: email, password: password })
                     });
                     
                     const data = await response.json();
-
-                    if (!response.ok) {
-                        // Показываем конкретную ошибку от сервера, например "Неверный пароль"
-                        throw new Error(data.message || 'Неизвестная ошибка сервера');
-                    }
+                    if (!response.ok) throw new Error(data.message || 'Неизвестная ошибка сервера');
 
                     localStorage.setItem('userId', data.userId);
                     setUserId(data.userId);
@@ -62,7 +67,6 @@
 
         function LoginPage({ onLogin }) {
             const [email, setEmail] = React.useState('');
-            // Добавляем состояние для пароля
             const [password, setPassword] = React.useState('');
 
             const handleSubmit = (e) => {
@@ -75,7 +79,6 @@
                     <h2>Вход или Регистрация</h2>
                     <form onSubmit={handleSubmit}>
                         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" required />
-                        {/* Добавляем поле для пароля */}
                         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" required />
                         <button type="submit">Войти / Зарегистрироваться</button>
                     </form>
@@ -83,15 +86,121 @@
             );
         }
         
+        // === КОМПОНЕНТ NOTESPAGE (ЗНАЧИТЕЛЬНЫЕ ИЗМЕНЕНИЯ) ===
         function NotesPage({ userId, onLogout }) {
+            // Состояние для хранения списка заметок
+            const [notes, setNotes] = React.useState([]);
+            // Состояние для текста новой заметки
+            const [newNoteText, setNewNoteText] = React.useState('');
+            // Состояние для отслеживания загрузки
+            const [isLoading, setIsLoading] = React.useState(true);
+
+            // 1. ПОЛУЧЕНИЕ ЗАМЕТОК С СЕРВЕРА ПРИ ЗАГРУЗКЕ КОМПОНЕНТА
+            React.useEffect(() => {
+                const fetchNotes = async () => {
+                    try {
+                        // Обратите внимание, как мы передаем userId
+                        const response = await fetch(`/api/notes?userId=${encodeURIComponent(userId)}`);
+                        if (!response.ok) throw new Error('Не удалось загрузить заметки');
+                        const data = await response.json();
+                        setNotes(data); // Сохраняем полученный массив в состояние
+                    } catch (error) {
+                        alert(error.message);
+                    } finally {
+                        setIsLoading(false); // Загрузка завершена
+                    }
+                };
+
+                fetchNotes();
+            }, [userId]); // Эффект перезапустится, если изменится userId
+
+            // 2. ФУНКЦИЯ СОЗДАНИЯ НОВОЙ ЗАМЕТКИ
+            const handleCreateNote = async (e) => {
+                e.preventDefault();
+                if (!newNoteText.trim()) return; // Не создавать пустые заметки
+
+                try {
+                    const response = await fetch('/api/notes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: userId, text: newNoteText })
+                    });
+                    if (!response.ok) throw new Error('Не удалось создать заметку');
+                    
+                    const createdNote = await response.json();
+                    
+                    // Обновляем состояние, добавляя новую заметку в список
+                    // Это более эффективно, чем запрашивать весь список заново
+                    setNotes(prevNotes => [...prevNotes, createdNote]);
+                    
+                    setNewNoteText(''); // Очищаем поле ввода
+                } catch (error) {
+                    alert(error.message);
+                }
+            };
+            
+            // 3. ФУНКЦИЯ УДАЛЕНИЯ ЗАМЕТКИ
+            const handleDeleteNote = async (noteIdToDelete) => {
+                // Оптимистичное удаление из UI для лучшего UX
+                const originalNotes = notes;
+                setNotes(notes.filter(note => note.id !== noteIdToDelete));
+
+                try {
+                    const response = await fetch('/api/notes', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: userId, noteId: noteIdToDelete })
+                    });
+                    if (!response.ok) {
+                        // Если на сервере произошла ошибка, возвращаем заметку в список
+                        setNotes(originalNotes);
+                        throw new Error('Не удалось удалить заметку на сервере');
+                    }
+                    // Если все успешно, ничего делать не нужно, UI уже обновлен
+                } catch (error) {
+                    alert(error.message);
+                }
+            };
+
             return (
                 <div className="container notes-container">
-                    <h2>Ваши заметки</h2>
-                    <p>Вы вошли как: {userId}</p>
-                    <div className="notes-list-container">
-                        <p>Контейнер для списка заметок.</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h2>Ваши заметки</h2>
+                        <button onClick={onLogout} style={{width: 'auto', marginTop: '0'}}>Выйти</button>
                     </div>
-                    <button onClick={onLogout}>Выйти</button>
+                    <p style={{marginTop: 0, color: '#888'}}>Вы вошли как: {userId}</p>
+
+                    {/* Форма для создания новой заметки */}
+                    <form onSubmit={handleCreateNote} className="form-create-note">
+                        <input 
+                            type="text"
+                            value={newNoteText}
+                            onChange={(e) => setNewNoteText(e.target.value)}
+                            placeholder="Новая заметка..."
+                        />
+                        <button type="submit">Создать</button>
+                    </form>
+
+                    {/* Список заметок */}
+                    <ul className="notes-list">
+                        {isLoading ? (
+                            <p className="loading-text">Загрузка заметок...</p>
+                        ) : notes.length > 0 ? (
+                            notes.map(note => (
+                                <li key={note.id} className="note-item">
+                                    <span>{note.text}</span>
+                                    <button 
+                                        onClick={() => handleDeleteNote(note.id)}
+                                        className="delete-btn"
+                                    >
+                                        Удалить
+                                    </button>
+                                </li>
+                            ))
+                        ) : (
+                            <p>У вас пока нет заметок. Создайте первую!</p>
+                        )}
+                    </ul>
                 </div>
             );
         }
