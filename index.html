@@ -4,50 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Простые Заметки</title>
-    <style>
-        :root {
-            --bg-color: #121212;
-            --primary-surface-color: #1e1e1e;
-            --secondary-surface-color: #2a2a2a;
-            --text-color: #e0e0e0;
-            --text-secondary-color: #888;
-            --accent-color: #0070f3;
-            --accent-hover-color: #005bb5;
-            --danger-color: #e53e3e;
-        }
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; }
-        #root { display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; box-sizing: border-box; }
-        .app-wrapper { width: 100%; max-width: 700px; }
-        .login-container { background-color: var(--primary-surface-color); padding: 2.5rem; border-radius: 8px; text-align: center; max-width: 400px; margin: auto; }
-        .notes-container, .detail-container { text-align: left; }
-        
-        /* --- Общие элементы --- */
-        h2 { font-size: 2rem; margin-top: 0; }
-        button { color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; transition: background-color 0.2s; }
-        input[type="email"], input[type="password"], input[type="text"], textarea {
-            background-color: var(--secondary-surface-color); color: var(--text-color); border: 1px solid #444; padding: 12px;
-            border-radius: 4px; width: calc(100% - 26px); margin-bottom: 1rem; font-size: 16px; font-family: inherit;
-        }
-        textarea { resize: vertical; min-height: 200px; }
-
-        /* --- Стили для списка заметок --- */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-        .header p { margin: 0; color: var(--text-secondary-color); }
-        .form-create-note { display: flex; gap: 10px; margin: 2rem 0; }
-        .form-create-note input { flex-grow: 1; margin: 0; }
-        .form-create-note button { width: auto; margin: 0; background-color: var(--accent-color); }
-        .notes-list { list-style: none; padding: 0; }
-        .note-item { display: flex; justify-content: space-between; align-items: center; background-color: var(--primary-surface-color); padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 0.75rem; transition: background-color 0.2s; }
-        .note-item:hover { background-color: var(--secondary-surface-color); }
-        .note-text { cursor: pointer; flex-grow: 1; font-size: 1.1rem; padding-right: 1rem; }
-        .delete-btn { background-color: transparent; color: var(--text-secondary-color); font-size: 14px; padding: 6px 12px; width: auto; margin: 0; }
-        .delete-btn:hover { background-color: var(--danger-color); color: white; }
-        
-        /* --- Стили для экрана детализации --- */
-        .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-        .btn-primary { background-color: var(--accent-color); }
-        .btn-secondary { background-color: var(--secondary-surface-color); }
-    </style>
+    <!-- УДАЛИЛИ ВСТРОЕННЫЕ СТИЛИ -->
+    <!-- ДОБАВИЛИ ССЫЛКУ НА ВНЕШНИЙ ФАЙЛ СТИЛЕЙ -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="root"></div>
@@ -58,7 +17,6 @@
 
     <script type="text/babel">
         function App() {
-            // ... (код App и LoginPage остается без изменений)
             const [userId, setUserId] = React.useState(() => localStorage.getItem('userId'));
 
             const handleLogin = async (email, password) => {
@@ -102,25 +60,22 @@
                 <div className="login-container">
                     <h2>Вход или Регистрация</h2>
                     <form onSubmit={handleSubmit}>
-                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" required />
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" required />
-                        <button type="submit" className="btn-primary" style={{width: '100%'}}>Войти</button>
+                        {/* ИЗМЕНЕНО: Используем общие классы */}
+                        <input className="form-control" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" required />
+                        <input className="form-control" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" required />
+                        <button type="submit" className="btn btn-primary" style={{width: '100%'}}>Войти</button>
                     </form>
                 </div>
             );
         }
         
-        // === КОМПОНЕНТ NOTESPAGE (ФИНАЛЬНАЯ ВЕРСИЯ) ===
+        // === КОМПОНЕНТ NOTESPAGE (ИЗМЕНЕНА ЛОГИКА СОЗДАНИЯ) ===
         function NotesPage({ userId, onLogout }) {
             const [notes, setNotes] = React.useState([]);
             const [isLoading, setIsLoading] = React.useState(true);
-            
-            // НОВОЕ: Управляем текущим видом: 'list' (список) или 'detail' (детали)
             const [view, setView] = React.useState('list');
-            // НОВОЕ: Храним выбранную для редактирования заметку
             const [selectedNote, setSelectedNote] = React.useState(null);
 
-            // 1. Получение заметок (без изменений)
             React.useEffect(() => {
                 const fetchNotes = async () => {
                     try {
@@ -133,22 +88,25 @@
                 fetchNotes();
             }, [userId]);
 
-            // 2. Создание заметки (без изменений)
-            const handleCreateNote = async (text) => {
-                if (!text.trim()) return;
+            // ИЗМЕНЕНО: Логика создания заметки
+            const handleCreateNote = async () => {
                 try {
+                    const defaultTitle = 'Новая заметка';
                     const response = await fetch('/api/notes', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId, text })
+                        body: JSON.stringify({ userId, text: defaultTitle })
                     });
                     if (!response.ok) throw new Error('Не удалось создать заметку');
                     const createdNote = await response.json();
+                    
+                    // Добавляем заметку в список и СРАЗУ открываем её для редактирования
                     setNotes(prev => [...prev, createdNote]);
+                    showDetailView(createdNote);
+
                 } catch (error) { alert(error.message); }
             };
             
-            // 3. Удаление заметки (без изменений)
             const handleDeleteNote = async (noteId) => {
                 const originalNotes = [...notes];
                 setNotes(notes.filter(n => n.id !== noteId));
@@ -165,7 +123,6 @@
                 } catch (error) { alert(error.message); }
             };
 
-            // 4. НОВОЕ: Обновление заметки
             const handleUpdateNote = async (noteId, newText, newDescription) => {
                 try {
                     const response = await fetch('/api/notes', {
@@ -176,17 +133,13 @@
                     if (!response.ok) throw new Error('Не удалось обновить заметку');
                     
                     const updatedNote = await response.json();
-                    
-                    // Обновляем заметку в локальном списке
                     setNotes(notes.map(n => n.id === noteId ? updatedNote : n));
-                    // Возвращаемся к списку
                     setView('list');
                 } catch (error) {
                     alert(error.message);
                 }
             };
             
-            // 5. НОВОЕ: Логика переключения видов
             const showDetailView = (note) => {
                 setSelectedNote(note);
                 setView('detail');
@@ -197,7 +150,6 @@
                 setView('list');
             };
 
-            // В зависимости от состояния "view" показываем либо один, либо другой компонент
             if (view === 'detail') {
                 return <NoteDetailPage note={selectedNote} onBack={showListView} onSave={handleUpdateNote} />;
             }
@@ -213,16 +165,8 @@
                     />;
         }
 
-        // === НОВЫЙ КОМПОНЕНТ: СПИСОК ЗАМЕТОК ===
+        // === КОМПОНЕНТ NOTELISTPAGE (ИЗМЕНЕН ИНТЕРФЕЙС) ===
         function NoteListPage({ userId, notes, isLoading, onCreate, onDelete, onSelect, onLogout }) {
-            const [newNoteText, setNewNoteText] = React.useState('');
-
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                onCreate(newNoteText);
-                setNewNoteText('');
-            }
-            
             return (
                 <div className="notes-container">
                     <div className="header">
@@ -230,16 +174,17 @@
                             <h2>Ваши Заметки</h2>
                             <p>Вошли как: {userId}</p>
                         </div>
-                        <button onClick={onLogout} className="btn-secondary">Выйти</button>
+                        {/* ИЗМЕНЕНО: Используем общие классы */}
+                        <button onClick={onLogout} className="btn btn-secondary">Выйти</button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="form-create-note">
-                        <input type="text" value={newNoteText} onChange={(e) => setNewNoteText(e.target.value)} placeholder="Начните писать здесь..." />
-                        <button type="submit">Создать</button>
-                    </form>
+                    {/* ИЗМЕНЕНО: Вместо формы теперь одна кнопка */}
+                    <button onClick={onCreate} className="btn btn-create-note">
+                        + Создать заметку
+                    </button>
                     
                     {isLoading && <p>Загрузка...</p>}
-                    {!isLoading && notes.length === 0 && <p>Заметок пока нет. Создайте первую!</p>}
+                    {!isLoading && notes.length === 0 && <p>Заметок пока нет. Нажмите "+", чтобы создать первую!</p>}
                     
                     <ul className="notes-list">
                         {notes.map(note => (
@@ -247,7 +192,8 @@
                                 <span className="note-text" onClick={() => onSelect(note)}>
                                     {note.text}
                                 </span>
-                                <button onClick={() => onDelete(note.id)} className="delete-btn">Удалить</button>
+                                {/* ИЗМЕНЕНО: Используем общие классы */}
+                                <button onClick={(e) => { e.stopPropagation(); onDelete(note.id); }} className="btn btn-delete">Удалить</button>
                             </li>
                         ))}
                     </ul>
@@ -255,24 +201,43 @@
             );
         }
 
-        // === НОВЫЙ КОМПОНЕНТ: ДЕТАЛИ ЗАМЕТКИ ===
+        // === КОМПОНЕНТ NOTEDETAILPAGE (ИЗМЕНЕН ИНТЕРФЕЙС) ===
         function NoteDetailPage({ note, onBack, onSave }) {
-            const [text, setText] = React.useState(note.text);
-            const [description, setDescription] = React.useState(note.description || '');
+            // `text` теперь Название, `description` - основной текст
+            const [title, setTitle] = React.useState(note.text);
+            const [content, setContent] = React.useState(note.description || '');
 
             const handleSave = () => {
-                onSave(note.id, text, description);
+                // Валидация: не позволяем сохранить пустое название
+                if (!title.trim()) {
+                    alert('Название заметки не может быть пустым.');
+                    return;
+                }
+                onSave(note.id, title, content);
             };
 
             return (
                 <div className="detail-container">
                     <div className="detail-header">
-                        <button onClick={onBack} className="btn-secondary">Назад</button>
-                        <button onClick={handleSave} className="btn-primary">Сохранить</button>
+                        {/* ИЗМЕНЕНО: Используем общие классы */}
+                        <button onClick={onBack} className="btn btn-secondary">Назад</button>
+                        <button onClick={handleSave} className="btn btn-primary">Сохранить</button>
                     </div>
                     
-                    <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Текст заметки"></textarea>
-                    <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Краткое описание (необязательно)" />
+                    {/* ИЗМЕНЕНО: Поля поменялись местами и стилями */}
+                    <input 
+                        type="text" 
+                        value={title} 
+                        onChange={(e) => setTitle(e.target.value)} 
+                        placeholder="Название заметки"
+                        className="form-control note-title-input" 
+                    />
+                    <textarea 
+                        value={content} 
+                        onChange={(e) => setContent(e.target.value)} 
+                        placeholder="Начните писать здесь..."
+                        className="form-control"
+                    ></textarea>
                 </div>
             );
         }
