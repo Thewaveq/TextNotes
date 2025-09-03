@@ -1,5 +1,8 @@
 // api/login.js
 
+// Подключаем библиотеку для шифрования, которую Vercel для нас установит
+const bcrypt = require('bcryptjs');
+
 module.exports = async (request, response) => {
   // Стандартные заголовки
   response.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,49 +17,64 @@ module.exports = async (request, response) => {
   }
 
   try {
-    // Получаем URL и ТОКЕН из переменных окружения
+    // Получаем URL и ТОКЕН, как и раньше
     const apiUrl = process.env.KV_REST_API_URL;
     const apiToken = process.env.KV_REST_API_TOKEN;
 
-    // Если ключей нет, то ничего не сработает
     if (!apiUrl || !apiToken) {
-      throw new Error("Переменные окружения KV_REST_API_URL или KV_REST_API_TOKEN не найдены.");
+      throw new Error("Сервер не видит переменные окружения для подключения к базе.");
     }
     
-    const { email } = request.body;
-    if (!email) {
-      return response.status(400).json({ message: 'Email не был отправлен' });
+    // Теперь получаем и email, и пароль от фронтенда
+    const { email, password } = request.body;
+    if (!email || !password) {
+      return response.status(400).json({ message: 'Email и пароль обязательны' });
     }
     const userId = email.toLowerCase();
     
-    // Формируем прямой запрос к базе данных Upstash
-    const commandUrl = `${apiUrl}/set/user:${userId}`;
-    const commandBody = JSON.stringify({ registeredAt: new Date().toISOString() });
-    
-    // Отправляем команду с помощью встроенного fetch
-    const fetchResponse = await fetch(commandUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-      },
-      body: commandBody,
+    // --- ОСНОВНАЯ ЛОГИКА ---
+
+    // 1. Ищем пользователя в базе
+    const findUserUrl = `${apiUrl}/get/user:${userId}`;
+    const userResponse = await fetch(findUserUrl, {
+      headers: { 'Authorization': `Bearer ${apiToken}` }
     });
-    
-    // Если база данных вернула ошибку, сообщаем об этом
-    if (!fetchResponse.ok) {
-      const errorText = await fetchResponse.text();
-      throw new Error(`Ошибка от базы данных: ${errorText}`);
+    const userData = await userResponse.json();
+    const user = userData.result ? JSON.parse(userData.result) : null;
+
+    // 2. Если пользователя НЕТ - это РЕГИСТРАЦИЯ
+    if (!user) {
+      // Шифруем пароль
+      const hashedPassword = await bcrypt.hash(password, 10); // 10 - сложность шифрования
+      
+      // Сохраняем нового пользователя с зашифрованным паролем
+      const saveUserUrl = `${apiUrl}/set/user:${userId}`;
+      await fetch(saveUserUrl, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiToken}` },
+        body: JSON.stringify({ hashedPassword: hashedPassword })
+      });
+      
+      // Сразу логиним его
+      return response.status(200).json({ userId: userId });
     }
 
-    // Если всё успешно, отправляем ответ в браузер
-    return response.status(200).json({ userId: userId });
+    // 3. Если пользователь ЕСТЬ - это ВХОД
+    else {
+      // Сравниваем пароль, который ввел пользователь, с зашифрованным паролем из базы
+      const isPasswordCorrect = await bcrypt.compare(password, user.hashedPassword);
+      
+      if (isPasswordCorrect) {
+        // Если пароли совпали - впускаем
+        return response.status(200).json({ userId: userId });
+      } else {
+        // Если нет - возвращаем ошибку "Неавторизован"
+        return response.status(401).json({ message: 'Неверный пароль' });
+      }
+    }
 
   } catch (error) {
-    // Если что-то пошло не так, возвращаем полную ошибку
-    console.error('ФИНАЛЬНАЯ ОШИБКА:', error);
-    return response.status(500).json({ 
-      message: 'Сервер упал. Причина:',
-      error: error.message,
-    });
+    console.error('Критическая ошибка:', error);
+    return response.status(500).json({ message: 'Серверная ошибка', error: error.message });
   }
 };
