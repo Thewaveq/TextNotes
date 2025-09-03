@@ -1,9 +1,8 @@
 // api/login.js
 
-// Подключаем встроенный, надежный модуль для шифрования
 const crypto = require('crypto');
 
-// Оборачиваем scrypt в Promise для удобной работы с async/await
+// Вспомогательная функция для шифрования, она не изменилась
 const scrypt = (password, salt) => {
   return new Promise((resolve, reject) => {
     crypto.scrypt(password, salt, 64, (err, derivedKey) => {
@@ -40,8 +39,6 @@ module.exports = async (request, response) => {
     }
     const userId = email.toLowerCase();
     
-    // --- НАДЕЖНАЯ ЛОГИКА С CRYPTO ---
-
     // 1. Ищем пользователя в базе
     const findUserUrl = `${apiUrl}/get/user:${userId}`;
     const userResponse = await fetch(findUserUrl, {
@@ -50,11 +47,10 @@ module.exports = async (request, response) => {
     const userData = await userResponse.json();
     const user = userData.result ? JSON.parse(userData.result) : null;
 
-    // 2. Если пользователя НЕТ - РЕГИСТРАЦИЯ
-    if (!user) {
+    // 2. ИСПРАВЛЕННАЯ ЛОГИКА: Если пользователя нет ИЛИ у него нет пароля - это РЕГИСТРАЦИЯ/ОБНОВЛЕНИЕ
+    if (!user || !user.hashedPassword) {
       const salt = crypto.randomBytes(16).toString('hex');
       const hashedPassword = await scrypt(password, salt);
-      
       const newUser = { salt, hashedPassword };
       
       const saveUserUrl = `${apiUrl}/set/user:${userId}`;
@@ -67,8 +63,9 @@ module.exports = async (request, response) => {
       return response.status(200).json({ userId: userId });
     }
 
-    // 3. Если пользователь ЕСТЬ - ВХОД
+    // 3. Если пользователь ЕСТЬ и у него ЕСТЬ пароль - это ВХОД
     else {
+      // Эта проверка теперь безопасна, потому что мы знаем, что user.salt существует
       const hashedPassword = await scrypt(password, user.salt);
       
       if (hashedPassword === user.hashedPassword) {
