@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF--8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Простые Заметки</title>
     <link rel="stylesheet" href="style.css">
@@ -21,11 +21,7 @@
             const [userId, setUserId] = React.useState(() => localStorage.getItem('userId'));
             const handleLogin = async (email, password) => {
                 try {
-                    const response = await fetch('/api/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password })
-                    });
+                    const response = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.message);
                     localStorage.setItem('userId', data.userId);
@@ -33,27 +29,14 @@
                 } catch (error) { alert('Ошибка: ' + error.message); }
             };
             const handleLogout = () => { localStorage.removeItem('userId'); setUserId(null); };
-            return (
-                <div className="app-wrapper">
-                    {userId ? (<NotesPage userId={userId} onLogout={handleLogout} />) : (<LoginPage onLogin={handleLogin} />)}
-                </div>
-            );
+            return (<div className="app-wrapper">{userId ? (<NotesPage userId={userId} onLogout={handleLogout} />) : (<LoginPage onLogin={handleLogin} />)}</div>);
         }
 
         function LoginPage({ onLogin }) {
             const [email, setEmail] = React.useState('');
             const [password, setPassword] = React.useState('');
             const handleSubmit = (e) => { e.preventDefault(); if (email && password) onLogin(email, password); };
-            return (
-                <div className="login-container">
-                    <h2>Вход или Регистрация</h2>
-                    <form onSubmit={handleSubmit}>
-                        <input className="form-control" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" required />
-                        <input className="form-control" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" required />
-                        <button type="submit" className="btn btn-primary" style={{width: '100%'}}>Войти</button>
-                    </form>
-                </div>
-            );
+            return (<div className="login-container"><h2>Вход или Регистрация</h2><form onSubmit={handleSubmit}><input className="form-control" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" required /><input className="form-control" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" required /><button type="submit" className="btn btn-primary" style={{width: '100%'}}>Войти</button></form></div>);
         }
         
         function NotesPage({ userId, onLogout }) {
@@ -63,23 +46,14 @@
             const [selectedNote, setSelectedNote] = React.useState(null);
             React.useEffect(() => {
                 const fetchNotes = async () => {
-                    try {
-                        const response = await fetch(`/api/notes?userId=${encodeURIComponent(userId)}`);
-                        if (!response.ok) throw new Error('Не удалось загрузить заметки');
-                        setNotes(await response.json());
-                    } catch (error) { alert(error.message); } 
-                    finally { setIsLoading(false); }
+                    try { const response = await fetch(`/api/notes?userId=${encodeURIComponent(userId)}`); if (!response.ok) throw new Error('Не удалось загрузить заметки'); setNotes(await response.json()); } catch (error) { alert(error.message); } finally { setIsLoading(false); }
                 };
                 fetchNotes();
             }, [userId]);
             const handleCreateNote = async () => {
                 try {
                     const defaultTitle = 'Новая заметка';
-                    const response = await fetch('/api/notes', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId, text: defaultTitle })
-                    });
+                    const response = await fetch('/api/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, text: defaultTitle }) });
                     if (!response.ok) throw new Error('Не удалось создать заметку');
                     const createdNote = await response.json();
                     setNotes(prev => [...prev, createdNote]);
@@ -88,26 +62,15 @@
             };
             const handleDeleteNote = async (noteId) => {
                 const originalNotes = [...notes];
-                setNotes(notes.filter(n => n.id !== noteId)); // Оптимистичное удаление
+                setNotes(notes.filter(n => n.id !== noteId));
                 try {
-                    const response = await fetch('/api/notes', {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId, noteId })
-                    });
-                    if (!response.ok) {
-                         setNotes(originalNotes); // Возвращаем, если ошибка
-                         throw new Error('Ошибка удаления на сервере');
-                    }
+                    const response = await fetch('/api/notes', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, noteId }) });
+                    if (!response.ok) { setNotes(originalNotes); throw new Error('Ошибка удаления на сервере'); }
                 } catch (error) { alert(error.message); }
             };
             const handleUpdateNote = async (noteId, newText, newDescription) => {
                 try {
-                    const response = await fetch('/api/notes', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId, noteId, text: newText, description: newDescription })
-                    });
+                    const response = await fetch('/api/notes', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, noteId, text: newText, description: newDescription }) });
                     if (!response.ok) throw new Error('Не удалось обновить заметку');
                     const updatedNote = await response.json();
                     setNotes(notes.map(n => n.id === noteId ? updatedNote : n));
@@ -128,60 +91,54 @@
         }
 
         function SettingsPage({ userId, onLogout, onBack }) {
-            return (
-                <div className="settings-container">
-                    <div className="settings-header"><button onClick={onBack} className="btn btn-secondary">Назад</button></div>
-                    <h2>Настройки</h2>
-                    <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: 'var(--primary-surface-color)', borderRadius: '8px'}}><p style={{ margin: 0, color: 'var(--text-secondary-color)' }}>Вы вошли как:</p><p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem' }}>{userId}</p></div>
-                    <button onClick={onLogout} className="btn btn-danger" style={{ width: '100%' }}>Выйти</button>
-                </div>
-            );
+            return (<div className="settings-container"><div className="settings-header"><button onClick={onBack} className="btn btn-secondary">Назад</button></div><h2>Настройки</h2><div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: 'var(--primary-surface-color)', borderRadius: '8px'}}><p style={{ margin: 0, color: 'var(--text-secondary-color)' }}>Вы вошли как:</p><p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem' }}>{userId}</p></div><button onClick={onLogout} className="btn btn-danger" style={{ width: '100%' }}>Выйти</button></div>);
         }
 
         function NoteDetailPage({ note, onBack, onSave }) {
             const [title, setTitle] = React.useState(note.text);
             const [content, setContent] = React.useState(note.description || '');
             const handleSave = () => { if (!title.trim()) { alert('Название заметки не может быть пустым.'); return; } onSave(note.id, title, content); };
-            return (
-                <div className="detail-container">
-                    <div className="detail-header"><button onClick={onBack} className="btn btn-secondary">Назад</button><button onClick={handleSave} className="btn btn-primary">Сохранить</button></div>
-                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название заметки" className="form-control note-title-input" />
-                    <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Начните писать здесь..." className="form-control"></textarea>
-                </div>
-            );
+            return (<div className="detail-container"><div className="detail-header"><button onClick={onBack} className="btn btn-secondary">Назад</button><button onClick={handleSave} className="btn btn-primary">Сохранить</button></div><input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название заметки" className="form-control note-title-input" /><textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Начните писать здесь..." className="form-control"></textarea></div>);
         }
 
-        // === НОВЫЙ КОМПОНЕНТ ДЛЯ ОДНОЙ ЗАМЕТКИ С ЛОГИКОЙ УДАЛЕНИЯ ===
+        // === КОМПОНЕНТ ЗАМЕТКИ С ОБНОВЛЕННОЙ ЛОГИКОЙ НАЖАТИЯ ===
         function DeletableNoteItem({ note, isDeleting, onSetDeleting, onSelect, onDelete }) {
-            const timerRef = React.useRef(null); // Ref для хранения ID таймера
+            const timerRef = React.useRef(null);
+            const longPressFiredRef = React.useRef(false); // Флаг, чтобы отделить долгий тап от клика
 
-            // Функция-обертка, чтобы избежать клика при отпускании долгого нажатия
+            const clearTimers = () => {
+                clearTimeout(timerRef.current);
+            };
+
+            // ИЗМЕНЕНО: Общая функция для начала долгого нажатия
+            const handlePressStart = () => {
+                longPressFiredRef.current = false;
+                timerRef.current = setTimeout(() => {
+                    onSetDeleting(note.id); // Активируем режим удаления
+                    longPressFiredRef.current = true; // Ставим флаг, что это был долгий тап
+                }, 500);
+            };
+            
+            // ИЗМЕНЕНО: Общая функция для окончания нажатия
+            const handlePressEnd = () => {
+                clearTimers();
+            };
+            
+            // ИЗМЕНЕНО: Клик обрабатывается только если не было долгого нажатия
             const handleClick = () => {
+                if (longPressFiredRef.current) return; // Если был долгий тап, игнорируем клик
                 if (isDeleting) {
-                    onSetDeleting(null); // Если в режиме удаления, клик его отключает
+                    onSetDeleting(null); // Если уже в режиме удаления, клик его отключает
                 } else {
-                    onSelect(note); // Иначе - обычный переход к заметке
+                    onSelect(note); // Обычный переход к заметке
                 }
             };
             
-            // Симуляция долгого нажатия
-            const handleMouseDown = (e) => {
-                // Запускаем таймер на 500 мс. Если он сработает, включится режим удаления.
-                timerRef.current = setTimeout(() => {
-                    onSetDeleting(note.id);
-                }, 500);
-            };
-
-            const handleMouseUp = () => {
-                // Если мы отпустили кнопку до того, как таймер сработал, отменяем его.
-                clearTimeout(timerRef.current);
-            };
-            
             // Долгое нажатие на корзине
-            const handleDeleteMouseDown = () => {
+            const handleDeletePressStart = () => {
                 timerRef.current = setTimeout(() => {
                     onDelete(note.id);
-                }, 700); // Делаем задержку чуть больше для надежности
+                }, 700);
             };
 
             return (
@@ -189,17 +146,23 @@
                     <div
                         className={`note-item ${isDeleting ? 'delete-active' : ''}`}
                         onClick={handleClick}
-                        onMouseDown={handleMouseDown}
-                        onMouseUp={handleMouseUp}
-                        onMouseLeave={handleMouseUp} // Также отменяем таймер, если курсор ушел
+                        onMouseDown={handlePressStart}
+                        onMouseUp={handlePressEnd}
+                        onMouseLeave={handlePressEnd}
+                        onTouchStart={handlePressStart}
+                        onTouchEnd={handlePressEnd}
+                        onTouchCancel={handlePressEnd}
                     >
                         <span className="note-text">{note.text}</span>
                     </div>
                     <div 
                         className="delete-confirm-area"
-                        onMouseDown={handleDeleteMouseDown}
-                        onMouseUp={handleMouseUp}
-                        onMouseLeave={handleMouseUp}
+                        onMouseDown={handleDeletePressStart}
+                        onMouseUp={handlePressEnd}
+                        onMouseLeave={handlePressEnd}
+                        onTouchStart={handleDeletePressStart}
+                        onTouchEnd={handlePressEnd}
+                        onTouchCancel={handlePressEnd}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.134H8.09a2.09 2.09 0 00-2.09 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -209,12 +172,34 @@
             );
         }
         
-        // === КОМПОНЕНТ NOTELISTPAGE (ИНТЕРФЕЙС ЗНАЧИТЕЛЬНО ИЗМЕНЕН) ===
+        // === КОМПОНЕНТ NOTELISTPAGE С ЛОГИКОЙ "КЛИКА ВНЕ" ===
         function NoteListPage({ userId, notes, isLoading, onCreate, onDelete, onSelect, onShowSettings }) {
             const [deletingNoteId, setDeletingNoteId] = React.useState(null);
 
+            // ИЗМЕНЕНО: Добавляем эффект для отслеживания кликов вне заметок
+            React.useEffect(() => {
+                // Если мы не в режиме удаления, ничего не делаем
+                if (!deletingNoteId) return;
+
+                const handleClickOutside = (event) => {
+                    // Проверяем, был ли клик вне элемента с классом .note-item-wrapper
+                    if (!event.target.closest('.note-item-wrapper')) {
+                        setDeletingNoteId(null); // Если да, сбрасываем режим удаления
+                    }
+                };
+
+                // Добавляем слушатели на весь документ
+                document.addEventListener('mousedown', handleClickOutside);
+                document.addEventListener('touchstart', handleClickOutside);
+
+                // ОБЯЗАТЕЛЬНО: убираем слушатели при размонтировании компонента или изменении deletingNoteId
+                return () => {
+                    document.removeEventListener('mousedown', handleClickOutside);
+                    document.removeEventListener('touchstart', handleClickOutside);
+                };
+            }, [deletingNoteId]); // Эффект зависит от deletingNoteId
+
             return (
-                // Используем React.Fragment, чтобы вернуть несколько элементов на одном уровне
                 <> 
                     <div className="notes-container">
                         <div className="header">
@@ -237,8 +222,6 @@
                             ))}
                         </ul>
                     </div>
-
-                    {/* Плавающая кнопка находится вне основного контейнера */}
                     <button onClick={onCreate} className="fab">+</button>
                 </>
             );
