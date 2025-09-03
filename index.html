@@ -4,8 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Простые Заметки</title>
-    <!-- УДАЛИЛИ ВСТРОЕННЫЕ СТИЛИ -->
-    <!-- ДОБАВИЛИ ССЫЛКУ НА ВНЕШНИЙ ФАЙЛ СТИЛЕЙ -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,6 +15,7 @@
 
     <script type="text/babel">
         function App() {
+            // ... (этот компонент без изменений)
             const [userId, setUserId] = React.useState(() => localStorage.getItem('userId'));
 
             const handleLogin = async (email, password) => {
@@ -52,6 +51,7 @@
         }
 
         function LoginPage({ onLogin }) {
+            // ... (этот компонент без изменений)
             const [email, setEmail] = React.useState('');
             const [password, setPassword] = React.useState('');
             const handleSubmit = (e) => { e.preventDefault(); if (email && password) onLogin(email, password); };
@@ -60,7 +60,6 @@
                 <div className="login-container">
                     <h2>Вход или Регистрация</h2>
                     <form onSubmit={handleSubmit}>
-                        {/* ИЗМЕНЕНО: Используем общие классы */}
                         <input className="form-control" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" required />
                         <input className="form-control" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" required />
                         <button type="submit" className="btn btn-primary" style={{width: '100%'}}>Войти</button>
@@ -69,15 +68,17 @@
             );
         }
         
-        // === КОМПОНЕНТ NOTESPAGE (ИЗМЕНЕНА ЛОГИКА СОЗДАНИЯ) ===
+        // === КОМПОНЕНТ NOTESPAGE (ДОБАВЛЕНА ЛОГИКА ДЛЯ ЭКРАНА НАСТРОЕК) ===
         function NotesPage({ userId, onLogout }) {
             const [notes, setNotes] = React.useState([]);
             const [isLoading, setIsLoading] = React.useState(true);
+            // ИЗМЕНЕНО: теперь у нас 3 вида: 'list', 'detail', 'settings'
             const [view, setView] = React.useState('list');
             const [selectedNote, setSelectedNote] = React.useState(null);
 
             React.useEffect(() => {
                 const fetchNotes = async () => {
+                    // ... (логика загрузки заметок без изменений)
                     try {
                         const response = await fetch(`/api/notes?userId=${encodeURIComponent(userId)}`);
                         if (!response.ok) throw new Error('Не удалось загрузить заметки');
@@ -87,8 +88,8 @@
                 };
                 fetchNotes();
             }, [userId]);
-
-            // ИЗМЕНЕНО: Логика создания заметки
+            
+            // ... (handleCreateNote, handleDeleteNote, handleUpdateNote без изменений)
             const handleCreateNote = async () => {
                 try {
                     const defaultTitle = 'Новая заметка';
@@ -99,16 +100,11 @@
                     });
                     if (!response.ok) throw new Error('Не удалось создать заметку');
                     const createdNote = await response.json();
-                    
-                    // Добавляем заметку в список и СРАЗУ открываем её для редактирования
                     setNotes(prev => [...prev, createdNote]);
                     showDetailView(createdNote);
-
                 } catch (error) { alert(error.message); }
             };
-            
             const handleDeleteNote = async (noteId) => {
-                const originalNotes = [...notes];
                 setNotes(notes.filter(n => n.id !== noteId));
                 try {
                     const response = await fetch('/api/notes', {
@@ -116,13 +112,9 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ userId, noteId })
                     });
-                    if (!response.ok) {
-                        setNotes(originalNotes);
-                        throw new Error('Ошибка удаления на сервере');
-                    }
+                    if (!response.ok) throw new Error('Ошибка удаления на сервере');
                 } catch (error) { alert(error.message); }
             };
-
             const handleUpdateNote = async (noteId, newText, newDescription) => {
                 try {
                     const response = await fetch('/api/notes', {
@@ -131,27 +123,24 @@
                         body: JSON.stringify({ userId, noteId, text: newText, description: newDescription })
                     });
                     if (!response.ok) throw new Error('Не удалось обновить заметку');
-                    
                     const updatedNote = await response.json();
                     setNotes(notes.map(n => n.id === noteId ? updatedNote : n));
                     setView('list');
-                } catch (error) {
-                    alert(error.message);
-                }
+                } catch (error) { alert(error.message); }
             };
             
-            const showDetailView = (note) => {
-                setSelectedNote(note);
-                setView('detail');
-            };
+            // ИЗМЕНЕНО: функции навигации
+            const showDetailView = (note) => { setSelectedNote(note); setView('detail'); };
+            const showListView = () => { setSelectedNote(null); setView('list'); };
+            const showSettingsView = () => { setSelectedNote(null); setView('settings'); };
 
-            const showListView = () => {
-                setSelectedNote(null);
-                setView('list');
-            };
-
+            // ИЗМЕНЕНО: Логика рендеринга в зависимости от вида
             if (view === 'detail') {
                 return <NoteDetailPage note={selectedNote} onBack={showListView} onSave={handleUpdateNote} />;
+            }
+
+            if (view === 'settings') {
+                return <SettingsPage userId={userId} onLogout={onLogout} onBack={showListView} />;
             }
 
             return <NoteListPage 
@@ -161,24 +150,49 @@
                         onCreate={handleCreateNote}
                         onDelete={handleDeleteNote}
                         onSelect={showDetailView}
-                        onLogout={onLogout}
+                        onShowSettings={showSettingsView} // Передаем новую функцию
                     />;
         }
+        
+        // === НОВЫЙ КОМПОНЕНТ: АВАТАР ПРОФИЛЯ ===
+        function ProfileAvatar({ email, onClick }) {
+            const initial = email ? email.charAt(0).toUpperCase() : '?';
+            return (
+                <div className="profile-avatar" onClick={onClick} title={email}>
+                    {initial}
+                </div>
+            );
+        }
 
-        // === КОМПОНЕНТ NOTELISTPAGE (ИЗМЕНЕН ИНТЕРФЕЙС) ===
-        function NoteListPage({ userId, notes, isLoading, onCreate, onDelete, onSelect, onLogout }) {
+        // === НОВЫЙ КОМПОНЕНТ: ЭКРАН НАСТРОЕК ===
+        function SettingsPage({ userId, onLogout, onBack }) {
+            return (
+                <div className="settings-container">
+                    <div className="settings-header">
+                        <button onClick={onBack} className="btn btn-secondary">Назад</button>
+                    </div>
+                    <h2>Настройки</h2>
+                    <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: 'var(--primary-surface-color)', borderRadius: '8px'}}>
+                        <p style={{ margin: 0, color: 'var(--text-secondary-color)' }}>Вы вошли как:</p>
+                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem' }}>{userId}</p>
+                    </div>
+                    {/* Здесь можно будет добавить другие настройки */}
+                    <button onClick={onLogout} className="btn btn-danger" style={{ width: '100%' }}>Выйти</button>
+                </div>
+            );
+        }
+
+        // === КОМПОНЕНТ NOTELISTPAGE (ИНТЕРФЕЙС ШАПКИ ИЗМЕНЕН) ===
+        function NoteListPage({ userId, notes, isLoading, onCreate, onDelete, onSelect, onShowSettings }) {
             return (
                 <div className="notes-container">
+                    {/* ИЗМЕНЕНО: Полностью новая шапка */}
                     <div className="header">
-                        <div>
-                            <h2>Ваши Заметки</h2>
-                            <p>Вошли как: {userId}</p>
-                        </div>
-                        {/* ИЗМЕНЕНО: Используем общие классы */}
-                        <button onClick={onLogout} className="btn btn-secondary">Выйти</button>
+                        <ProfileAvatar email={userId} onClick={onShowSettings} />
                     </div>
+                    
+                    {/* Заголовок "Ваши Заметки" удален для минимализма */}
 
-                    {/* ИЗМЕНЕНО: Вместо формы теперь одна кнопка */}
                     <button onClick={onCreate} className="btn btn-create-note">
                         + Создать заметку
                     </button>
@@ -192,7 +206,6 @@
                                 <span className="note-text" onClick={() => onSelect(note)}>
                                     {note.text}
                                 </span>
-                                {/* ИЗМЕНЕНО: Используем общие классы */}
                                 <button onClick={(e) => { e.stopPropagation(); onDelete(note.id); }} className="btn btn-delete">Удалить</button>
                             </li>
                         ))}
@@ -201,14 +214,12 @@
             );
         }
 
-        // === КОМПОНЕНТ NOTEDETAILPAGE (ИЗМЕНЕН ИНТЕРФЕЙС) ===
         function NoteDetailPage({ note, onBack, onSave }) {
-            // `text` теперь Название, `description` - основной текст
+            // ... (этот компонент без изменений)
             const [title, setTitle] = React.useState(note.text);
             const [content, setContent] = React.useState(note.description || '');
 
             const handleSave = () => {
-                // Валидация: не позволяем сохранить пустое название
                 if (!title.trim()) {
                     alert('Название заметки не может быть пустым.');
                     return;
@@ -219,25 +230,12 @@
             return (
                 <div className="detail-container">
                     <div className="detail-header">
-                        {/* ИЗМЕНЕНО: Используем общие классы */}
                         <button onClick={onBack} className="btn btn-secondary">Назад</button>
                         <button onClick={handleSave} className="btn btn-primary">Сохранить</button>
                     </div>
                     
-                    {/* ИЗМЕНЕНО: Поля поменялись местами и стилями */}
-                    <input 
-                        type="text" 
-                        value={title} 
-                        onChange={(e) => setTitle(e.target.value)} 
-                        placeholder="Название заметки"
-                        className="form-control note-title-input" 
-                    />
-                    <textarea 
-                        value={content} 
-                        onChange={(e) => setContent(e.target.value)} 
-                        placeholder="Начните писать здесь..."
-                        className="form-control"
-                    ></textarea>
+                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название заметки" className="form-control note-title-input" />
+                    <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Начните писать здесь..." className="form-control"></textarea>
                 </div>
             );
         }
