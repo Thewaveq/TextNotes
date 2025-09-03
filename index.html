@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF--8" />
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Простые Заметки</title>
     <link rel="stylesheet" href="style.css">
@@ -14,7 +14,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script type="text/babel">
-        // Компоненты App, LoginPage, NotesPage, ProfileAvatar, SettingsPage, NoteDetailPage
+        // Компоненты App, LoginPage, NotesPage, ProfileAvatar, NoteDetailPage
         // остаются БЕЗ ИЗМЕНЕНИЙ. Копирую их для целостности.
         
         function App() {
@@ -90,8 +90,24 @@
             return (<div className="profile-avatar" onClick={onClick} title={email}>{initial}</div>);
         }
 
+        // === ИЗМЕНЕННЫЙ КОМПОНЕНТ SETTINGSPAGE ===
         function SettingsPage({ userId, onLogout, onBack }) {
-            return (<div className="settings-container"><div className="settings-header"><button onClick={onBack} className="btn btn-secondary">Назад</button></div><h2>Настройки</h2><div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: 'var(--primary-surface-color)', borderRadius: '8px'}}><p style={{ margin: 0, color: 'var(--text-secondary-color)' }}>Вы вошли как:</p><p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem' }}>{userId}</p></div><button onClick={onLogout} className="btn btn-danger" style={{ width: '100%' }}>Выйти</button></div>);
+            return (
+                <div className="settings-container">
+                    <div className="settings-header">
+                        <button onClick={onBack} className="btn btn-secondary">Назад</button>
+                    </div>
+                    <h2>Настройки</h2>
+                    <div className="profile-info">
+                        <ProfileAvatar email={userId} />
+                        <div className="profile-info-text">
+                            <p className="profile-info-label">Вы вошли как:</p>
+                            <p className="profile-info-email">{userId}</p>
+                        </div>
+                    </div>
+                    <button onClick={onLogout} className="btn btn-danger" style={{ width: '100%' }}>Выйти</button>
+                </div>
+            );
         }
 
         function NoteDetailPage({ note, onBack, onSave }) {
@@ -101,46 +117,26 @@
             return (<div className="detail-container"><div className="detail-header"><button onClick={onBack} className="btn btn-secondary">Назад</button><button onClick={handleSave} className="btn btn-primary">Сохранить</button></div><input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название заметки" className="form-control note-title-input" /><textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Начните писать здесь..." className="form-control"></textarea></div>);
         }
 
-        // === КОМПОНЕНТ ЗАМЕТКИ С ОБНОВЛЕННОЙ ЛОГИКОЙ НАЖАТИЯ ===
         function DeletableNoteItem({ note, isDeleting, onSetDeleting, onSelect, onDelete }) {
             const timerRef = React.useRef(null);
-            const longPressFiredRef = React.useRef(false); // Флаг, чтобы отделить долгий тап от клика
-
-            const clearTimers = () => {
-                clearTimeout(timerRef.current);
-            };
-
-            // ИЗМЕНЕНО: Общая функция для начала долгого нажатия
+            const longPressFiredRef = React.useRef(false); 
+            const clearTimers = () => { clearTimeout(timerRef.current); };
             const handlePressStart = () => {
                 longPressFiredRef.current = false;
                 timerRef.current = setTimeout(() => {
-                    onSetDeleting(note.id); // Активируем режим удаления
-                    longPressFiredRef.current = true; // Ставим флаг, что это был долгий тап
+                    onSetDeleting(note.id);
+                    longPressFiredRef.current = true;
                 }, 500);
             };
-            
-            // ИЗМЕНЕНО: Общая функция для окончания нажатия
-            const handlePressEnd = () => {
-                clearTimers();
-            };
-            
-            // ИЗМЕНЕНО: Клик обрабатывается только если не было долгого нажатия
+            const handlePressEnd = () => { clearTimers(); };
             const handleClick = () => {
-                if (longPressFiredRef.current) return; // Если был долгий тап, игнорируем клик
-                if (isDeleting) {
-                    onSetDeleting(null); // Если уже в режиме удаления, клик его отключает
-                } else {
-                    onSelect(note); // Обычный переход к заметке
-                }
+                if (longPressFiredRef.current) return;
+                if (isDeleting) { onSetDeleting(null); } 
+                else { onSelect(note); }
             };
-            
-            // Долгое нажатие на корзине
             const handleDeletePressStart = () => {
-                timerRef.current = setTimeout(() => {
-                    onDelete(note.id);
-                }, 700);
+                timerRef.current = setTimeout(() => { onDelete(note.id); }, 700);
             };
-
             return (
                 <li className="note-item-wrapper">
                     <div
@@ -172,33 +168,22 @@
             );
         }
         
-        // === КОМПОНЕНТ NOTELISTPAGE С ЛОГИКОЙ "КЛИКА ВНЕ" ===
         function NoteListPage({ userId, notes, isLoading, onCreate, onDelete, onSelect, onShowSettings }) {
             const [deletingNoteId, setDeletingNoteId] = React.useState(null);
-
-            // ИЗМЕНЕНО: Добавляем эффект для отслеживания кликов вне заметок
             React.useEffect(() => {
-                // Если мы не в режиме удаления, ничего не делаем
                 if (!deletingNoteId) return;
-
                 const handleClickOutside = (event) => {
-                    // Проверяем, был ли клик вне элемента с классом .note-item-wrapper
                     if (!event.target.closest('.note-item-wrapper')) {
-                        setDeletingNoteId(null); // Если да, сбрасываем режим удаления
+                        setDeletingNoteId(null);
                     }
                 };
-
-                // Добавляем слушатели на весь документ
                 document.addEventListener('mousedown', handleClickOutside);
                 document.addEventListener('touchstart', handleClickOutside);
-
-                // ОБЯЗАТЕЛЬНО: убираем слушатели при размонтировании компонента или изменении deletingNoteId
                 return () => {
                     document.removeEventListener('mousedown', handleClickOutside);
                     document.removeEventListener('touchstart', handleClickOutside);
                 };
-            }, [deletingNoteId]); // Эффект зависит от deletingNoteId
-
+            }, [deletingNoteId]);
             return (
                 <> 
                     <div className="notes-container">
