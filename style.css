@@ -250,6 +250,12 @@ input.note-title-input:focus {
     box-sizing: border-box;
     cursor: pointer;
     transition: width 0.3s ease-in-out, background-color 0.2s;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 .note-item:hover {
     background-color: var(--primary-surface-color);
@@ -277,6 +283,12 @@ input.note-title-input:focus {
     border-radius: 8px; 
     cursor: pointer;
     z-index: 1;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .delete-confirm-area svg {
