@@ -214,19 +214,20 @@ input.note-title-input:focus {
 }
 
 /* --- Стили для списка заметок и механики удаления --- */
+.notes-list-wrapper {
+    flex-grow: 1; /* Позволяет блоку занять все доступное место */
+    overflow-y: auto; /* Включает прокрутку только для этого блока */
+    min-height: 0; /* Техническое свойство для правильной работы flexbox */
+    scrollbar-width: none; /* Скрывает скроллбар для Firefox */
+}
+
+.notes-list-wrapper::-webkit-scrollbar {
+    display: none; /* Скрывает скроллбар для Chrome, Safari, Edge */
+}
+
 .notes-list { 
     list-style: none; 
     padding: 0; 
-    overflow-y: auto;
-    height: 100%;
-    
-    /* --- Скрываем скроллбар --- */
-    scrollbar-width: none; /* Для Firefox */
-}
-
-/* --- Скрываем скроллбар для Chrome, Safari, Edge --- */
-.notes-list::-webkit-scrollbar {
-    display: none;
 }
 
 /* Обертка для позиционирования */
@@ -248,7 +249,6 @@ input.note-title-input:focus {
     box-sizing: border-box;
     cursor: pointer;
     transition: width 0.3s ease-in-out, background-color 0.2s;
-
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
@@ -281,7 +281,6 @@ input.note-title-input:focus {
     border-radius: 8px; 
     cursor: pointer;
     z-index: 1;
-
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
