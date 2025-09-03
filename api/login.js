@@ -1,7 +1,17 @@
 // api/login.js
 
-// Подключаем библиотеку для шифрования, которую Vercel для нас установит
-const bcrypt = require('bcryptjs');
+// Подключаем встроенный, надежный модуль для шифрования
+const crypto = require('crypto');
+
+// Оборачиваем scrypt в Promise для удобной работы с async/await
+const scrypt = (password, salt) => {
+  return new Promise((resolve, reject) => {
+    crypto.scrypt(password, salt, 64, (err, derivedKey) => {
+      if (err) reject(err);
+      resolve(derivedKey.toString('hex'));
+    });
+  });
+};
 
 module.exports = async (request, response) => {
   // Стандартные заголовки
@@ -17,7 +27,6 @@ module.exports = async (request, response) => {
   }
 
   try {
-    // Получаем URL и ТОКЕН, как и раньше
     const apiUrl = process.env.KV_REST_API_URL;
     const apiToken = process.env.KV_REST_API_TOKEN;
 
@@ -25,14 +34,13 @@ module.exports = async (request, response) => {
       throw new Error("Сервер не видит переменные окружения для подключения к базе.");
     }
     
-    // Теперь получаем и email, и пароль от фронтенда
     const { email, password } = request.body;
     if (!email || !password) {
       return response.status(400).json({ message: 'Email и пароль обязательны' });
     }
     const userId = email.toLowerCase();
     
-    // --- ОСНОВНАЯ ЛОГИКА ---
+    // --- НАДЕЖНАЯ ЛОГИКА С CRYPTO ---
 
     // 1. Ищем пользователя в базе
     const findUserUrl = `${apiUrl}/get/user:${userId}`;
@@ -42,33 +50,30 @@ module.exports = async (request, response) => {
     const userData = await userResponse.json();
     const user = userData.result ? JSON.parse(userData.result) : null;
 
-    // 2. Если пользователя НЕТ - это РЕГИСТРАЦИЯ
+    // 2. Если пользователя НЕТ - РЕГИСТРАЦИЯ
     if (!user) {
-      // Шифруем пароль
-      const hashedPassword = await bcrypt.hash(password, 10); // 10 - сложность шифрования
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hashedPassword = await scrypt(password, salt);
       
-      // Сохраняем нового пользователя с зашифрованным паролем
+      const newUser = { salt, hashedPassword };
+      
       const saveUserUrl = `${apiUrl}/set/user:${userId}`;
       await fetch(saveUserUrl, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${apiToken}` },
-        body: JSON.stringify({ hashedPassword: hashedPassword })
+        body: JSON.stringify(newUser)
       });
       
-      // Сразу логиним его
       return response.status(200).json({ userId: userId });
     }
 
-    // 3. Если пользователь ЕСТЬ - это ВХОД
+    // 3. Если пользователь ЕСТЬ - ВХОД
     else {
-      // Сравниваем пароль, который ввел пользователь, с зашифрованным паролем из базы
-      const isPasswordCorrect = await bcrypt.compare(password, user.hashedPassword);
+      const hashedPassword = await scrypt(password, user.salt);
       
-      if (isPasswordCorrect) {
-        // Если пароли совпали - впускаем
+      if (hashedPassword === user.hashedPassword) {
         return response.status(200).json({ userId: userId });
       } else {
-        // Если нет - возвращаем ошибку "Неавторизован"
         return response.status(401).json({ message: 'Неверный пароль' });
       }
     }
