@@ -296,3 +296,51 @@ input.note-title-input:focus {
     height: 24px;
     stroke: white;
 }
+
+/* 1. Затухание контейнера */
+/* 1. Делаем контейнер родительским для позиционирования оверлеев */
+.notes-container {
+    position: relative;
+}
+
+/* 2. Создаем верхний и нижний оверлеи с помощью псевдо-элементов */
+.notes-container::before,
+.notes-container::after {
+    /* Обязательно для псевдо-элементов */
+    content: ''; 
+    /* Позиционируем абсолютно относительно родителя (.notes-container) */
+    position: absolute; 
+    /* Растягиваем на всю ширину */
+    left: 0;
+    right: 0;
+    /* Устанавливаем высоту затемнения */
+    height: 40px; 
+    /* Размещаем поверх списка */
+    z-index: 5;
+    /* Самое важное: не дает блоку перехватывать клики и скролл */
+    pointer-events: none; 
+}
+
+/* 3. Настраиваем верхнее затемнение */
+.notes-container::before {
+    /* Прикрепляем к верху */
+    top: 0;
+    /* Создаем градиент от цвета фона к полной прозрачности */
+    background: linear-gradient(
+        to bottom, 
+        var(--bg-color) 20%, 
+        rgba(18, 18, 18, 0) 100%
+    );
+}
+
+/* 4. Настраиваем нижнее затемнение */
+.notes-container::after {
+    /* Прикрепляем к низу */
+    bottom: 0;
+    /* Создаем обратный градиент */
+    background: linear-gradient(
+        to top, 
+        var(--bg-color) 20%, 
+        rgba(18, 18, 18, 0) 100%
+    );
+}
