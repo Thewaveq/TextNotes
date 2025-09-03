@@ -232,19 +232,20 @@
                         {isLoading && <p>Загрузка...</p>}
                         {!isLoading && notes.length === 0 && <p>Заметок пока нет. Нажмите "+", чтобы создать первую!</p>}
                         
-                        <ul className="notes-list">
-                            {notes.map(note => (
-                                <DeletableNoteItem 
-                                    key={note.id}
-                                    note={note}
-                                    isDeleting={deletingNoteId === note.id}
-                                    onSetDeleting={setDeletingNoteId}
-                                    onSelect={onSelect}
-                                    onDelete={onDelete}
-                                />
-                            ))}
-                        </ul>
-                    </div>
+                        <div className="notes-list-wrapper">
+                            <ul className="notes-list">
+                                {notes.map(note => (
+                                    <DeletableNoteItem 
+                                        key={note.id}
+                                        note={note}
+                                        isDeleting={deletingNoteId === note.id}
+                                        onSetDeleting={setDeletingNoteId}
+                                        onSelect={onSelect}
+                                        onDelete={onDelete}
+                                    />
+                                ))}
+                            </ul>
+                        </div>
                     <button onClick={onCreate} className="fab">+</button>
                 </>
             );
