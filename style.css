@@ -218,6 +218,7 @@ input.note-title-input:focus {
     list-style: none; 
     padding: 0; 
     overflow-y: auto;
+    height: 100%;
     
     /* --- Скрываем скроллбар --- */
     scrollbar-width: none; /* Для Firefox */
