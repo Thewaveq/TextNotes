@@ -1,50 +1,58 @@
 // api/login.js
 
-// Используем require вместо import - это надежнее для серверных функций
+// Мы даже не будем пытаться импортировать KV, пока не проверим переменные
 const { kv } = require('@vercel/kv');
 
 module.exports = async (request, response) => {
-  // Устанавливаем заголовки для CORS, чтобы браузер не ругался
+  // Стандартные заголовки CORS
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Vercel иногда отправляет предварительный запрос OPTIONS
   if (request.method === 'OPTIONS') {
     return response.status(200).end();
   }
-
-  // Наша логика работает только для POST запросов
   if (request.method !== 'POST') {
     return response.status(405).json({ message: 'Метод не разрешен' });
   }
 
+  // --- ДИАГНОСТИЧЕСКИЙ БЛОК ---
+  // Проверяем, видит ли функция переменные окружения, необходимые для KV.
+  const diagnostics = {
+    has_KV_REST_API_URL: !!process.env.KV_REST_API_URL,
+    has_KV_REST_API_TOKEN: !!process.env.KV_REST_API_TOKEN,
+    has_KV_URL: !!process.env.KV_URL,
+    // Также проверим стандартную переменную Vercel, чтобы убедиться, что окружение вообще работает
+    vercel_region: process.env.VERCEL_REGION || 'не определен'
+  };
+
+  // Если хотя бы одной ключевой переменной нет, сразу возвращаем ошибку с диагностикой
+  if (!diagnostics.has_KV_REST_API_URL || !diagnostics.has_KV_REST_API_TOKEN) {
+    return response.status(500).json({
+      message: "КРИТИЧЕСКАЯ ОШИБКА: Серверная функция не видит переменные окружения для подключения к KV.",
+      diagnostics: diagnostics
+    });
+  }
+  // --- КОНЕЦ ДИАГНОСТИЧЕСКОГО БЛОКА ---
+
   try {
-    // Проверяем, что тело запроса не пустое
-    if (!request.body || !request.body.email) {
-      return response.status(400).json({ message: 'Email не был отправлен в теле запроса' });
-    }
-
     const { email } = request.body;
-    const userId = email.toLowerCase();
-    
-    // Пытаемся получить данные о пользователе из KV хранилища
-    const userExists = await kv.get(`user:${userId}`);
-
-    // Если пользователя нет, создаем запись о нем
-    if (!userExists) {
-      await kv.set(`user:${userId}`, { registeredAt: new Date().toISOString() });
+    if (!email) {
+      return response.status(400).json({ message: 'Email не был отправлен' });
     }
 
-    // Возвращаем успешный ответ в формате JSON
+    const userId = email.toLowerCase();
+    await kv.set(`user:${userId}`, { lastLogin: new Date().toISOString() });
+    
     return response.status(200).json({ userId: userId });
 
   } catch (error) {
-    // ЕСЛИ ЧТО-ТО ПОЙДЕТ НЕ ТАК - мы отправим ошибку в правильном JSON формате
-    console.error('КРИТИЧЕСКАЯ ОШИБКА:', error);
+    // Если мы дошли сюда, значит переменные есть, но ошибка в самом коде работы с KV
+    console.error('ОШИБКА РАБОТЫ С KV:', error);
     return response.status(500).json({ 
-      message: 'Внутренняя ошибка сервера. Вероятно, проблема с подключением к KV.',
-      errorDetails: error.message 
+      message: 'Переменные окружения найдены, но произошла ошибка при работе с KV.',
+      errorDetails: error.message,
+      diagnostics: diagnostics // Прикрепляем диагностику и сюда
     });
   }
 };
