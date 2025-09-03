@@ -23,12 +23,14 @@ body {
     display: flex; 
     justify-content: center; 
     padding: 2rem 1rem; 
-    min-height: 100vh; 
+    height: 100vh; /* ИЗМЕНЕНО: Занимаем всю высоту */
     box-sizing: border-box; 
 }
 .app-wrapper { 
     width: 100%; 
     max-width: 700px; 
+    display: flex; /* ИЗМЕНЕНО: Добавляем flex для управления высотой дочерних элементов */
+    flex-direction: column; /* ИЗМЕНЕНО: Располагаем элементы вертикально */
 }
 h2 { 
     font-size: 2rem; 
@@ -111,6 +113,10 @@ input.note-title-input:focus {
 }
 .notes-container, .detail-container, .settings-container { 
     text-align: left; 
+    display: flex; /* ИЗМЕНЕНО */
+    flex-direction: column; /* ИЗМЕНЕНО */
+    flex-grow: 1; /* ИЗМЕНЕНО: Занимает все доступное пространство */
+    min-height: 0; /* ИЗМЕНЕНО: Для корректной работы flexbox и overflow */
 }
 .header { 
     display: flex; 
@@ -118,12 +124,14 @@ input.note-title-input:focus {
     align-items: center; 
     margin-bottom: 1rem;
     height: 40px;
+    flex-shrink: 0; /* ИЗМЕНЕНО: Шапка не сжимается */
 }
 .detail-header, .settings-header { 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
     margin-bottom: 1rem; 
+    flex-shrink: 0; /* ИЗМЕНЕНО: Шапка не сжимается */
 }
 
 /* --- Аватар пользователя --- */
@@ -146,39 +154,74 @@ input.note-title-input:focus {
     transform: scale(1.1);
 }
 
+/* --- НОВОЕ: Стили для блока профиля в настройках --- */
+.profile-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background-color: var(--primary-surface-color);
+    border-radius: 8px;
+}
+.profile-info .profile-avatar {
+    width: 50px; /* Делаем аватар чуть больше */
+    height: 50px;
+    font-size: 24px;
+    cursor: default; /* Убираем курсор-указатель */
+}
+.profile-info .profile-avatar:hover {
+    transform: none; /* Убираем увеличение при наведении */
+}
+.profile-info-text {
+    display: flex;
+    flex-direction: column;
+}
+.profile-info-label {
+    margin: 0;
+    color: var(--text-secondary-color);
+    font-size: 0.9rem;
+}
+.profile-info-email {
+    margin: 0.25rem 0 0 0;
+    font-size: 1.1rem;
+    word-break: break-all; /* Перенос длинных email */
+}
+
+
 /* --- ИЗМЕНЕНО: Плавающая кнопка создания (FAB) --- */
 .fab {
     position: fixed;
-    bottom: 2.5rem;
-    right: 2.5rem;
-    width: 56px; /* Уменьшили размер */
-    height: 56px; /* Уменьшили размер */
+    bottom: 2rem; /* Уменьшаем отступ */
+    right: 2rem;  /* Уменьшаем отступ */
+    width: 56px;  /* Уменьшаем размер */
+    height: 56px; /* Уменьшаем размер */
     border-radius: 50%;
-    background-color: var(--secondary-surface-color); /* Сделали темной */
-    color: var(--text-color); /* Поменяли цвет текста на светлый */
-    font-size: 32px; /* Скорректировали размер шрифта */
-    line-height: 56px; /* Скорректировали для центрирования */
+    background-color: var(--primary-surface-color); /* Темный фон */
+    color: var(--accent-color); /* Цвет иконки */
+    border: 2px solid var(--accent-color); /* Обводка */
+    font-size: 32px; /* Уменьшаем размер плюса */
+    line-height: 52px; /* Выравниваем плюс по центру */
     text-align: center;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    border: 1px solid var(--border-color); /* Добавили обводку */
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s;
+    transition: all 0.2s ease-in-out;
     z-index: 1000;
 }
 .fab:hover {
-    background-color: #3a3a3a; /* Затемнили цвет при наведении */
-    transform: scale(1.05);
+    background-color: var(--secondary-surface-color); /* Немного светлее при наведении */
+    transform: scale(1.05) rotate(90deg); /* Добавляем эффект вращения */
 }
 
-/* --- ИЗМЕНЕНО: Стили для списка заметок и механики удаления --- */
+/* --- Стили для списка заметок и механики удаления --- */
 .notes-list { 
     list-style: none; 
     padding: 0; 
     margin-top: 1.5rem;
-    /* Добавили скролл */
-    max-height: calc(100vh - 150px); /* Ограничиваем высоту, 150px - примерное значение для шапки и отступов */
-    overflow-y: auto; /* Включаем вертикальный скролл при необходимости */
-    padding-right: 8px; /* Добавили небольшой отступ справа, чтобы скроллбар не прилипал к тексту */
+    flex-grow: 1; /* ИЗМЕНЕНО: Занимает все доступное пространство */
+    overflow-y: auto; /* ИЗМЕНЕНО: Добавляем скролл */
+    min-height: 0; /* ИЗМЕНЕНО: Для корректной работы flexbox и overflow */
+    padding-right: 8px; /* ИЗМЕНЕНО: Небольшой отступ справа, чтобы скроллбар не прилипал */
 }
 
 /* Обертка для позиционирования */
