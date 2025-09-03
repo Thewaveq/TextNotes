@@ -1,7 +1,5 @@
 // api/login.js
 
-const { kv } = require('@vercel/kv');
-
 module.exports = async (request, response) => {
   // Стандартные заголовки
   response.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,28 +14,49 @@ module.exports = async (request, response) => {
   }
 
   try {
+    // Получаем URL и ТОКЕН из переменных окружения
+    const apiUrl = process.env.KV_REST_API_URL;
+    const apiToken = process.env.KV_REST_API_TOKEN;
+
+    // Если ключей нет, то ничего не сработает
+    if (!apiUrl || !apiToken) {
+      throw new Error("Переменные окружения KV_REST_API_URL или KV_REST_API_TOKEN не найдены.");
+    }
+    
     const { email } = request.body;
     if (!email) {
       return response.status(400).json({ message: 'Email не был отправлен' });
     }
     const userId = email.toLowerCase();
     
-    // Попытка выполнить операцию с базой
-    await kv.set(`user:${userId}`, { lastLogin: new Date().toISOString() });
+    // Формируем прямой запрос к базе данных Upstash
+    const commandUrl = `${apiUrl}/set/user:${userId}`;
+    const commandBody = JSON.stringify({ registeredAt: new Date().toISOString() });
     
+    // Отправляем команду с помощью встроенного fetch
+    const fetchResponse = await fetch(commandUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+      },
+      body: commandBody,
+    });
+    
+    // Если база данных вернула ошибку, сообщаем об этом
+    if (!fetchResponse.ok) {
+      const errorText = await fetchResponse.text();
+      throw new Error(`Ошибка от базы данных: ${errorText}`);
+    }
+
+    // Если всё успешно, отправляем ответ в браузер
     return response.status(200).json({ userId: userId });
 
   } catch (error) {
-    // 
-    // ЭТО САМАЯ ВАЖНАЯ ЧАСТЬ
-    // ЕСЛИ КОД ПАДАЕТ, МЫ ОТПРАВЛЯЕМ НАЗАД В БРАУЗЕР ПОЛНОЕ СООБЩЕНИЕ ОБ ОШИБКЕ
-    //
-    console.error('КРИТИЧЕСКАЯ ОШИБКА, КОТОРУЮ МЫ ЛОВИМ:', error);
+    // Если что-то пошло не так, возвращаем полную ошибку
+    console.error('ФИНАЛЬНАЯ ОШИБКА:', error);
     return response.status(500).json({ 
-      message: 'Сервер упал. Вот настоящая причина:',
-      error_name: error.name,
-      error_message: error.message,
-      error_stack: error.stack, // Это покажет нам, где именно в коде произошел сбой
+      message: 'Сервер упал. Причина:',
+      error: error.message,
     });
   }
 };
