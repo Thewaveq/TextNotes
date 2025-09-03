@@ -10,6 +10,7 @@
     --accent-color: #0070f3;
     --accent-hover-color: #005bb5;
     --danger-color: #e53e3e;
+    --danger-hover-color: #c53030;
     --border-color: #444;
 }
 body { 
@@ -55,7 +56,6 @@ textarea.form-control {
     resize: vertical; 
     min-height: 250px; 
 }
-/* НОВЫЙ стиль для заголовка заметки */
 input.note-title-input {
     font-size: 1.8rem;
     font-weight: bold;
@@ -75,6 +75,7 @@ input.note-title-input:focus {
     padding: 12px 24px;
     border-radius: 6px;
     font-size: 16px;
+    font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s;
     text-align: center;
@@ -92,7 +93,6 @@ input.note-title-input:focus {
 .btn-secondary:hover { 
     background-color: #3a3a3a; 
 }
-/* НОВЫЙ стиль для кнопки создания */
 .btn-create-note {
     width: 100%;
     border: 2px dashed var(--border-color);
@@ -116,8 +116,15 @@ input.note-title-input:focus {
     background-color: var(--danger-color);
     color: white;
 }
+/* НОВЫЙ СТИЛЬ: для кнопки выхода и других опасных действий */
+.btn-danger {
+    background-color: var(--danger-color);
+}
+.btn-danger:hover {
+    background-color: var(--danger-hover-color);
+}
 
-/* --- Контейнеры --- */
+/* --- Контейнеры и Шапка --- */
 .login-container { 
     background-color: var(--primary-surface-color); 
     padding: 2.5rem; 
@@ -126,24 +133,42 @@ input.note-title-input:focus {
     max-width: 400px; 
     margin: auto; 
 }
-.notes-container, .detail-container { 
+.notes-container, .detail-container, .settings-container { 
     text-align: left; 
 }
+/* ИЗМЕНЕНО: стили шапки */
 .header { 
     display: flex; 
-    justify-content: space-between; 
+    justify-content: flex-end; /* Теперь все элементы справа */
     align-items: center; 
-    margin-bottom: 0.5rem; 
+    margin-bottom: 1rem;
+    height: 40px; /* Задаем фиксированную высоту для стабильности */
 }
-.header p { 
-    margin: 0; 
-    color: var(--text-secondary-color); 
-}
-.detail-header { 
+.detail-header, .settings-header { 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
     margin-bottom: 1rem; 
+}
+
+/* --- НОВЫЙ СТИЛЬ: Аватар пользователя --- */
+.profile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none; /* Чтобы буква не выделялась при клике */
+    transition: transform 0.2s;
+}
+.profile-avatar:hover {
+    transform: scale(1.1);
 }
 
 /* --- Список заметок --- */
