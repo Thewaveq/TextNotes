@@ -1,94 +1,114 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Твои Тексты</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Заметки на Vercel</title>
     <style>
-        /* Здесь можешь добавить немного стилей, чтобы было красиво */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; background: #f0f2f5; }
-        #root { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        textarea { width: 98%; font-size: 16px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-top: 10px; }
-        button { padding: 10px 15px; border: none; background: #007bff; color: white; border-radius: 4px; cursor: pointer; margin-right: 10px; }
-        button:hover { background: #0056b3; }
-        h2, h3 { color: #333; }
-        .note-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
-        .note-item:hover { background: #f9f9f9; }
+        body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .container { background-color: #1e1e1e; padding: 2rem; border-radius: 8px; text-align: center; width: 90%; max-width: 400px; }
+        button { background-color: #0070f3; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; margin-top: 1rem; }
+        input { background-color: #333; color: #fff; border: 1px solid #444; padding: 10px; border-radius: 4px; width: calc(100% - 22px); margin-bottom: 1rem; }
+        .notes-container { text-align: left; }
     </style>
 </head>
 <body>
 
-    <!-- Сюда React вставит наше приложение -->
     <div id="root"></div>
 
-    <!-- Подключаем React и Babel, чтобы писать JSX прямо в HTML -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Клиент Google API для работы с Диском -->
-    <script src="https://apis.google.com/js/api.js"></script>
 
-    <!--
-    ============================================================
-    ТВОЙ КОД ПРИЛОЖЕНИЯ НАЧИНАЕТСЯ ЗДЕСЬ
-    Пиши весь JavaScript и React код внутри этого тега.
-    ============================================================
-    -->
     <script type="text/babel">
-
-        // --- КОНФИГУРАЦИЯ ---
-        // Эти ключи нужно будет добавить в настройки на Vercel
-        const CLIENT_ID = "ТВОЙ_CLIENT_ID"; // Например, 12345.apps.googleusercontent.com
-        const API_KEY = "ТВОЙ_API_KEY";
-        const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
-        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-        
-        // Главный компонент
+        // Главный компонент приложения
         function App() {
-            // Здесь будет вся логика: авторизация, список заметок и т.д.
-            // Пока просто для проверки
-            const [page, setPage] = React.useState('list'); // 'list', 'note', 'description'
+            // Пробуем достать ID пользователя из localStorage при загрузке
+            const [userId, setUserId] = React.useState(() => localStorage.getItem('userId'));
 
-            // ЭКРАН 1: Список заметок
-            if (page === 'list') {
-                return (
-                    <div>
-                        <h2>Мои тексты песен</h2>
-                        <div className="note-item" onClick={() => setPage('note')}>
-                            Название первой песни...
-                        </div>
-                        <div className="note-item" onClick={() => setPage('note')}>
-                            Название второй песни...
-                        </div>
-                        <hr/>
-                        <button>+ Новая песня</button>
-                    </div>
-                );
-            }
+            const handleLogin = async (email) => {
+                try {
+                    // Отправляем запрос на нашу серверную функцию /api/login
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: email })
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.message);
+                    }
 
-            // ЭКРАН 2 и 3: Просмотр заметки
-            if (page === 'note') {
-                return (
-                    <div>
-                        <button onClick={() => setPage('list')}>← Назад к списку</button>
-                        <h3>Название первой песни...</h3>
-                        <textarea placeholder="Пиши текст песни здесь..." style={{height: '300px'}}></textarea>
-                        
-                        <hr/>
-                        <h4>Описание и детали</h4>
-                        <textarea placeholder="Аккорды, мысли, идеи..." style={{height: '100px'}}></textarea>
-                        
-                        <br/><br/>
-                        <button>Сохранить</button>
-                    </div>
-                );
+                    const data = await response.json();
+                    localStorage.setItem('userId', data.userId); // Сохраняем ID в браузере
+                    setUserId(data.userId);
+
+                } catch (error) {
+                    alert('Ошибка: ' + error.message);
+                }
+            };
+            
+            const handleLogout = () => {
+                localStorage.removeItem('userId'); // Удаляем ID из браузера
+                setUserId(null);
+            };
+
+            // Если userId есть, показываем страницу заметок, иначе - страницу входа
+            if (userId) {
+                return <NotesPage userId={userId} onLogout={handleLogout} />;
+            } else {
+                return <LoginPage onLogin={handleLogin} />;
             }
+        }
+
+        // Компонент страницы входа
+        function LoginPage({ onLogin }) {
+            const [email, setEmail] = React.useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (email) {
+                    onLogin(email.toLowerCase());
+                } else {
+                    alert('Введите email');
+                }
+            };
+            
+            return (
+                <div className="container">
+                    <h2>Вход или Регистрация</h2>
+                    <form onSubmit={handleSubmit}>
+                        <input 
+                            type="email" 
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="user@example.com"
+                        />
+                        <button type="submit">Войти</button>
+                    </form>
+                </div>
+            );
+        }
+        
+        // Компонент страницы с заметками
+        function NotesPage({ userId, onLogout }) {
+             // Здесь будет логика для загрузки и отображения заметок
+            return (
+                <div className="container notes-container">
+                    <h2>Ваши заметки</h2>
+                    <p>Вы вошли как: {userId}</p>
+                    <div className="notes-list-container">
+                        <p>Контейнер для списка заметок.</p>
+                        {/* Тут будет рендер заметок */}
+                    </div>
+                    <button onClick={onLogout}>Выйти</button>
+                </div>
+            );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-
     </script>
 </body>
 </html>
