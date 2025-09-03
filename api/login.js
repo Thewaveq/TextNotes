@@ -1,6 +1,6 @@
 // api/login.js
 
-// Используем надежный 'require' синтаксис
+// Используем надежный 'require' синтаксис 
 const { kv } = require('@vercel/kv');
 
 module.exports = async (request, response) => {
